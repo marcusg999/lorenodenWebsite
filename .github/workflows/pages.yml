@@ -1,0 +1,120 @@
+# Publishes the public site to GitHub Pages.
+#
+# No database is involved: the build reads data/content.json, which is
+# committed to the repo. Export a fresh one from the portal any time with
+#   npm run content:export
+# and commit it.
+#
+# The workflow enables Pages by itself where the token is permitted to.
+#
+# Publishing only happens from the default branch: GitHub's own github-pages
+# environment restricts deployments to it, and a job that violates that is
+# rejected before any step runs. Other branches still build and attach the
+# site as a downloadable "site" artifact, which is the pre-merge preview.
+#
+# To preview a branch on Pages itself instead, allow it once at
+#   Settings → Environments → github-pages → Deployment branches
+# and add the branch (or a pattern such as claude/**).
+name: Deploy site to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+      # Preview branches build and attach the artifact; see the note above.
+      - 'claude/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      pages_ready: ${{ steps.pages_check.outputs.ready }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      # The static build needs only ejs. Skipping the native and image
+      # dependencies keeps this fast and avoids compiling anything.
+      - name: Install build dependencies
+        run: npm install --no-save ejs@3.1.10
+
+      - name: Build
+        # A project page is served from /<repo>, so the base path must match.
+        run: node server/export-static.js --base "/${GITHUB_REPOSITORY#*/}"
+
+      # Always available, Pages or not: download this to preview locally.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: dist
+          retention-days: 14
+
+      # enablement turns Pages on when the token is allowed to. Never fail the
+      # build over it — the check below decides what happens next.
+      - uses: actions/configure-pages@v5
+        id: configure
+        continue-on-error: true
+        with:
+          enablement: true
+
+      - name: Is Pages available?
+        id: pages_check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pages" || echo 000)
+          if [ "$code" = "200" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::GitHub Pages is enabled — publishing."
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::GitHub Pages is not enabled for this repository (API returned $code), so the deploy step is being skipped."
+            echo "::warning::Enable it once at Settings → Pages → Build and deployment → Source: \"GitHub Actions\", then re-run this workflow."
+            echo "::notice::The built site is attached to this run as the \"site\" artifact — download it to preview locally in the meantime."
+          fi
+
+      - name: Note how to preview this branch
+        if: github.ref_name != github.event.repository.default_branch
+        run: |
+          echo "::notice::Built from '${{ github.ref_name }}'. GitHub only allows Pages deployments from the default branch ('${{ github.event.repository.default_branch }}'), so this run stops at the artifact."
+          echo "::notice::Download the \"site\" artifact from this run to preview locally, or merge to publish. To publish from this branch instead, add it under Settings → Environments → github-pages → Deployment branches."
+
+      - uses: actions/upload-pages-artifact@v3
+        if: steps.pages_check.outputs.ready == 'true'
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    # Skipped, not failed, when Pages is off or we are not on the default
+    # branch. The github-pages environment rejects a deployment from any other
+    # branch before the job starts, which surfaces as a step-less failure with
+    # no logs — a red X no code change can clear. Neither case is a broken
+    # build, so neither should look like one.
+    if: >-
+      needs.build.outputs.pages_ready == 'true' &&
+      github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,848 @@
+{
+  "version": 1,
+  "exportedAt": "2026-10-08T05:04:06.178Z",
+  "content": {
+    "seo.home.title": "Loren Oden | Soul Singer, Music & Live Dates",
+    "seo.home.description": "Explore the music of Los Angeles singer Loren Oden. Listen to solo recordings and collaborations, discover film and TV credits, and view live dates and photos.",
+    "seo.gallery.title": "Loren Oden | Travel & Photo Gallery",
+    "seo.gallery.description": "Photographs of Loren Oden onstage and on the road, from Los Angeles to England, with more personal travel stories to come.",
+    "seo.og.description": "A voice rooted in soul. Music that reaches beyond it.",
+    "hero.eyebrow": "A voice rooted in soul.",
+    "hero.name1": "Loren",
+    "hero.name2": "Oden",
+    "hero.role": "Singer · Songwriter · Los Angeles",
+    "hero.line": "Music that reaches beyond it.",
+    "hero.cta1.label": "Listen to the music",
+    "hero.cta1.href": "#room",
+    "hero.cta2.label": "Live & on tour",
+    "hero.cta2.href": "#shows",
+    "hero.strip": "*Linear Labs|The Midnight Hour|Jazz Is Dead|Adrian Younge|*62 recordings",
+    "hero.ignite": "Move to light the room",
+    "hero.scroll": "Scroll",
+    "about.kicker": "About",
+    "about.head": "Compton gospel,",
+    "about.head_em": "cinematic soul",
+    "about.body": "Loren Oden is a Los Angeles singer, songwriter, and arranger with roots in Compton’s gospel tradition. His warm, expressive voice connects classic soul with the cinematic music of Adrian Younge, The Midnight Hour, and Jazz Is Dead. His debut solo album, *My Heart, My Love*, brings that sound into a personal collection of songs about romance, vulnerability, and connection.",
+    "about.pull": "Sixty-two recordings, and the voice is the thread through all of them.",
+    "about.portrait.src": "assets/img/portrait",
+    "about.portrait.alt": "Loren Oden wearing a fedora and a pink shirt.",
+    "about.portrait.credit": "Portrait via Linear Labs · photographer not specified",
+    "releases.kicker": "Current music",
+    "releases.head": "Out",
+    "releases.head_em": "now",
+    "room.kicker": "The listening room",
+    "room.head": "Sixty-two",
+    "room.head_em": "selections",
+    "room.lede": "Solo recordings, featured performances and credited vocal contributions, ordered for discovery rather than chronology. Audio plays through the official Bandcamp and Apple Music players; selections without a player open at their source.",
+    "room.note": "Players do not advance automatically. Streaming availability, sign-in and territory restrictions still apply.",
+    "shows.kicker": "Live",
+    "shows.head": "On",
+    "shows.head_em": "stage",
+    "shows.empty.show": "1",
+    "shows.empty.head": "No dates are currently listed.",
+    "shows.empty.note": "Loren’s Bandsintown page carried no upcoming shows when it was checked on October 3, 2026. That describes one listing, not proof that nothing is scheduled elsewhere.",
+    "shows.empty.cta.label": "Follow announcements",
+    "shows.empty.cta.href": "https://www.bandsintown.com/a/12308882-loren-oden",
+    "shows.upcoming.kicker": "Upcoming",
+    "shows.archive.kicker": "Archive",
+    "screen.kicker": "Film, television and soundtrack",
+    "screen.head": "On",
+    "screen.head_em": "screen",
+    "screen.note": "A sourced selection of credits, not a complete filmography. Composer credits belonging to collaborators are not claimed here.",
+    "press.kicker": "Press",
+    "press.head": "In",
+    "press.head_em": "print",
+    "next.kicker": "Upcoming music",
+    "next.head": "The next",
+    "next.head_hi": "chapter",
+    "next.body": "New release announcements will appear here.",
+    "gallery.kicker": "Travel & photographs",
+    "gallery.head": "From the",
+    "gallery.head_em": "road",
+    "gallery.lede": "Moments onstage in Los Angeles and England, with more stories from our travels to come.",
+    "gallery.personal.kicker": "Personal travel",
+    "gallery.personal.head": "More moments",
+    "gallery.personal.head_hi": "to come",
+    "gallery.personal.lede": "Our personal travel photographs will join this gallery soon.",
+    "gallery.personal.note": "The gallery above holds accurately captioned performance and touring photographs only. Destination images will be added from the artist’s own archive rather than substituted from stock.",
+    "gallery.footer.mark": "From",
+    "gallery.footer.mark2": "the road",
+    "gallery.footer.credits": "Photographs: Matt Neville / Wordplay · The Artform Studio",
+    "gallery.footer.note": "Permission to be confirmed before launch",
+    "footer.mark": "Loren",
+    "footer.mark2": "Oden",
+    "footer.base1": "Los Angeles, California",
+    "footer.base2": "Photographs credited to their sources · permission to be confirmed before launch",
+    "footer.copyright": "Loren Oden"
+  },
+  "nav": [
+    {
+      "label": "Music",
+      "href": "/#room"
+    },
+    {
+      "label": "About",
+      "href": "/#about"
+    },
+    {
+      "label": "Shows",
+      "href": "/#shows"
+    },
+    {
+      "label": "Film & TV",
+      "href": "/#screen"
+    },
+    {
+      "label": "Press",
+      "href": "/#press"
+    },
+    {
+      "label": "From the Road",
+      "href": "/gallery"
+    }
+  ],
+  "releases": [
+    {
+      "tag": "New single",
+      "title": "Through My Soul",
+      "body": "**Adrian Younge & Ali Shaheed Muhammad** featuring Loren Oden.\nReleased April 17, 2026. Linear Labs Crew / Sony Music Publishing (GMR).",
+      "link_label": "Apple Music",
+      "url": "https://music.apple.com/us/album/through-my-soul-feat-loren-oden-single/1894301597"
+    },
+    {
+      "tag": "Debut album",
+      "title": "My Heart, My Love",
+      "body": "**Produced by Adrian Younge.** Released September 11, 2020 through Linear Labs. Fourteen songs about romance, vulnerability and connection. Some platforms list it as *Adrian Younge Presents: Loren Oden*.",
+      "link_label": "Bandcamp",
+      "url": "https://lorenoden.bandcamp.com/album/adrian-younge-presents-loren-oden-my-heart-my-love"
+    },
+    {
+      "tag": "",
+      "title": "Fealhá",
+      "body": "**Pupillo** featuring Céu & Loren Oden, on *Pupillo*.\nMarch 6, 2026.",
+      "link_label": "Bandcamp",
+      "url": "https://amorinsound.bandcamp.com/track/fealh-feat-c-u-loren-oden"
+    },
+    {
+      "tag": "",
+      "title": "Nunca Mais / Loca Pasión",
+      "body": "**Antônio Carlos & Jocafi JID026**, featuring Loren Oden.\nApril 3, 2026.",
+      "link_label": "Bandcamp",
+      "url": "https://jazzisdead.bandcamp.com/album/antonio-carlos-jocafi-jid026"
+    }
+  ],
+  "tracks": [
+    {
+      "title": "Through My Soul",
+      "artist": "Adrian Younge & Ali Shaheed Muhammad",
+      "album": "Through My Soul (2026)",
+      "category": "Features",
+      "role": "Featured vocals",
+      "source": "https://music.apple.com/us/album/through-my-soul-feat-loren-oden-single/1894301597",
+      "embed": "https://embed.music.apple.com/us/album/through-my-soul-feat-loren-oden-single/1894301597"
+    },
+    {
+      "title": "Is There a Way",
+      "artist": "Loren Oden",
+      "album": "My Heart, My Love (2020)",
+      "category": "Solo",
+      "role": "Lead vocals",
+      "source": "https://lorenoden.bandcamp.com/track/is-there-a-way",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=3648002546/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Feel Alive",
+      "artist": "The Midnight Hour · Karolina & Loren Oden",
+      "album": "The Midnight Hour (2018)",
+      "category": "Features",
+      "role": "Featured vocals",
+      "source": "https://themidnighthour.bandcamp.com/track/feel-alive-feat-karolina-and-loren-oden",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=4259687362/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Harmony",
+      "artist": "The Midnight Hour",
+      "album": "Harmony (2019)",
+      "category": "Features",
+      "role": "Featured vocals",
+      "source": "https://www.linearlabsmusic.com/videos/v/w29g7d7ccw7xsmhhjbaxnlk447kz2b",
+      "embed": ""
+    },
+    {
+      "title": "Into My Novela",
+      "artist": "Céu & Loren Oden",
+      "album": "Novela (2024)",
+      "category": "Features",
+      "role": "Featured vocals",
+      "source": "https://www.shazam.com/es-es/song/1740125961/into-my-novela",
+      "embed": "https://embed.music.apple.com/us/song/1740125961"
+    },
+    {
+      "title": "Fealhá",
+      "artist": "Pupillo · Céu & Loren Oden",
+      "album": "Pupillo (2026)",
+      "category": "Features",
+      "role": "Featured vocals",
+      "source": "https://amorinsound.bandcamp.com/track/fealh-feat-c-u-loren-oden",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=907054668/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Loca Pasión",
+      "artist": "Antônio Carlos & Jocafi",
+      "album": "Antonio Carlos & Jocafi JID026 (2026)",
+      "category": "Features",
+      "role": "Featured vocals",
+      "source": "https://jazzisdead.bandcamp.com/track/loca-pasi-n-feat-loren-oden",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=2403813677/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Nunca Mais",
+      "artist": "Antônio Carlos & Jocafi",
+      "album": "Antonio Carlos & Jocafi JID026 (2026)",
+      "category": "Features",
+      "role": "Featured vocals",
+      "source": "https://jazzisdead.bandcamp.com/track/nunca-mais-feat-loren-oden",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=2208345129/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "My Heart, My Love",
+      "artist": "Loren Oden",
+      "album": "My Heart, My Love (2020)",
+      "category": "Solo",
+      "role": "Lead vocals",
+      "source": "https://lorenoden.bandcamp.com/track/my-heart-my-love",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=3565238337/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Galaxies",
+      "artist": "Loren Oden",
+      "album": "My Heart, My Love (2020)",
+      "category": "Solo",
+      "role": "Lead vocals",
+      "source": "https://lorenoden.bandcamp.com/track/galaxies",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=1332385044/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Words To Say",
+      "artist": "Loren Oden",
+      "album": "My Heart, My Love (2020)",
+      "category": "Solo",
+      "role": "Lead vocals",
+      "source": "https://lorenoden.bandcamp.com/track/words-to-say",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=604127794/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Addicted",
+      "artist": "Loren Oden",
+      "album": "My Heart, My Love (2020)",
+      "category": "Solo",
+      "role": "Lead vocals",
+      "source": "https://lorenoden.bandcamp.com/track/addicted",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=3160780220/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Queen",
+      "artist": "Loren Oden",
+      "album": "My Heart, My Love (2020)",
+      "category": "Solo",
+      "role": "Lead vocals",
+      "source": "https://lorenoden.bandcamp.com/track/queen",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=1159361045/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Don't Be",
+      "artist": "Loren Oden",
+      "album": "My Heart, My Love (2020)",
+      "category": "Solo",
+      "role": "Lead vocals",
+      "source": "https://lorenoden.bandcamp.com/track/dont-be",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=625735326/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "All Roads",
+      "artist": "Loren Oden",
+      "album": "My Heart, My Love (2020)",
+      "category": "Solo",
+      "role": "Lead vocals",
+      "source": "https://lorenoden.bandcamp.com/track/all-roads",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=3405244059/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Waiting For",
+      "artist": "Loren Oden",
+      "album": "My Heart, My Love (2020)",
+      "category": "Solo",
+      "role": "Lead vocals",
+      "source": "https://lorenoden.bandcamp.com/track/waiting-for",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=3008170371/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Matters Of Heart feat Estelle",
+      "artist": "Loren Oden",
+      "album": "My Heart, My Love (2020)",
+      "category": "Solo",
+      "role": "Lead vocals",
+      "source": "https://lorenoden.bandcamp.com/track/matters-of-heart-feat-estelle",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=1458616874/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Somber Sonnet",
+      "artist": "Loren Oden",
+      "album": "My Heart, My Love (2020)",
+      "category": "Solo",
+      "role": "Lead vocals",
+      "source": "https://lorenoden.bandcamp.com/track/somber-sonnet",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=2320079479/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "The Moment",
+      "artist": "Loren Oden",
+      "album": "My Heart, My Love (2020)",
+      "category": "Solo",
+      "role": "Lead vocals",
+      "source": "https://lorenoden.bandcamp.com/track/the-moment",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=2609024879/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Timeless Answers",
+      "artist": "Loren Oden",
+      "album": "My Heart, My Love (2020)",
+      "category": "Solo",
+      "role": "Lead vocals",
+      "source": "https://lorenoden.bandcamp.com/track/timeless-answers",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=3633220054/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Frequency",
+      "artist": "Loren Oden",
+      "album": "My Heart, My Love (2020)",
+      "category": "Solo",
+      "role": "Lead vocals",
+      "source": "https://lorenoden.bandcamp.com/track/frequency",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=70463129/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Love Brings Happiness",
+      "artist": "Lonnie Liston Smith · Adrian Younge & Ali Shaheed Muhammad",
+      "album": "Lonnie Liston Smith JID017 (2023)",
+      "category": "Features",
+      "role": "Featured vocals",
+      "source": "https://lonnielistonsmith.bandcamp.com/track/love-brings-happiness-feat-loren-oden",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=4247562846/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Cosmic Changes",
+      "artist": "Lonnie Liston Smith · Adrian Younge & Ali Shaheed Muhammad",
+      "album": "Lonnie Liston Smith JID017 (2023)",
+      "category": "Features",
+      "role": "Featured vocals",
+      "source": "https://lonnielistonsmith.bandcamp.com/track/cosmic-changes-feat-loren-oden",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=1761213580/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Love Can Be",
+      "artist": "Lonnie Liston Smith · Adrian Younge & Ali Shaheed Muhammad",
+      "album": "Lonnie Liston Smith JID017 (2023)",
+      "category": "Features",
+      "role": "Featured vocals",
+      "source": "https://lonnielistonsmith.bandcamp.com/track/love-can-be-feat-loren-oden",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=958390033/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Gotta Love Again",
+      "artist": "Marcos Valle · Adrian Younge & Ali Shaheed Muhammad",
+      "album": "Marcos Valle JID003 (2020)",
+      "category": "Features",
+      "role": "Featured vocals",
+      "source": "https://marcosvalle.bandcamp.com/track/gotta-love-again",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=580359935/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Não Negue Seu Coracão",
+      "artist": "João Donato · Adrian Younge & Ali Shaheed Muhammad",
+      "album": "João Donato JID007 (2021)",
+      "category": "Features",
+      "role": "Credited vocals",
+      "source": "https://joaodonato.bandcamp.com/track/n-o-negue-seu-corac-o",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=3071156565/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Aquarius (Bring Her Back Home)",
+      "artist": "João Donato · Adrian Younge & Ali Shaheed Muhammad",
+      "album": "João Donato JID007 (2021)",
+      "category": "Features",
+      "role": "Credited vocals",
+      "source": "https://joaodonato.bandcamp.com/track/aquarius-bring-her-back-home",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=3113078881/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Desejo de Amor",
+      "artist": "João Donato · Adrian Younge & Ali Shaheed Muhammad",
+      "album": "João Donato JID007 (2021)",
+      "category": "Features",
+      "role": "Credited vocals",
+      "source": "https://joaodonato.bandcamp.com/track/desejo-de-amor",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=472870282/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Forever More",
+      "artist": "João Donato · Adrian Younge & Ali Shaheed Muhammad",
+      "album": "João Donato JID007 (2021)",
+      "category": "Features",
+      "role": "Credited vocals",
+      "source": "https://joaodonato.bandcamp.com/track/forever-more",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=2572934364/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Sua Beleza e Beleza",
+      "artist": "João Donato · Adrian Younge & Ali Shaheed Muhammad",
+      "album": "João Donato JID007 (2021)",
+      "category": "Features",
+      "role": "Credited vocals",
+      "source": "https://joaodonato.bandcamp.com/track/sua-beleza-e-beleza",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=1967205691/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Liasons",
+      "artist": "João Donato · Adrian Younge & Ali Shaheed Muhammad",
+      "album": "João Donato JID007 (2021)",
+      "category": "Features",
+      "role": "Credited vocals",
+      "source": "https://joaodonato.bandcamp.com/track/liasons",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=1223656416/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Turn Down the Sound",
+      "artist": "Adrian Younge",
+      "album": "Something About April",
+      "category": "Features",
+      "role": "Featured vocals",
+      "source": "https://adrianyounge.bandcamp.com/track/turn-down-the-sound-2",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=4009050074/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Anna May",
+      "artist": "Adrian Younge",
+      "album": "Something About April",
+      "category": "Features",
+      "role": "Featured vocals",
+      "source": "https://adrianyounge.bandcamp.com/track/anna-may-2",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=1435219440/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Sitting By The Radio",
+      "artist": "Adrian Younge",
+      "album": "Something About April II (2016)",
+      "category": "Features",
+      "role": "Featured vocals",
+      "source": "https://linearlabs.bandcamp.com/track/sittin-by-the-radio",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=788713030/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Winter Is Here",
+      "artist": "Adrian Younge",
+      "album": "Something About April II (2016)",
+      "category": "Features",
+      "role": "Featured vocals",
+      "source": "https://linearlabs.bandcamp.com/track/winter-is-here",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=1566534463/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Sandrine",
+      "artist": "Adrian Younge",
+      "album": "Something About April II (2016)",
+      "category": "Features",
+      "role": "Featured vocals",
+      "source": "https://linearlabs.bandcamp.com/track/sandrine",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=1385123220/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Psalms",
+      "artist": "Adrian Younge",
+      "album": "Something About April II (2016)",
+      "category": "Features",
+      "role": "Featured vocals",
+      "source": "https://linearlabs.bandcamp.com/track/psalms",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=3203281476/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Ready to Love",
+      "artist": "Adrian Younge",
+      "album": "Something About April II (2016)",
+      "category": "Features",
+      "role": "Featured vocals",
+      "source": "https://linearlabs.bandcamp.com/track/ready-to-love",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=1839336842/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Hear My Love",
+      "artist": "Adrian Younge",
+      "album": "Something About April II (2016)",
+      "category": "Features",
+      "role": "Featured vocals",
+      "source": "https://linearlabs.bandcamp.com/track/hear-my-love",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=919320612/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "To Be Your One",
+      "artist": "The Delfonics · Adrian Younge",
+      "album": "Adrian Younge Presents: The Delfonics (2013)",
+      "category": "Features",
+      "role": "Featured vocals",
+      "source": "https://adrianyounge.bandcamp.com/track/to-be-your-one",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=1126479438/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Life Never Ends",
+      "artist": "The Delfonics · Adrian Younge",
+      "album": "Adrian Younge Presents: The Delfonics (2013)",
+      "category": "Features",
+      "role": "Featured vocals",
+      "source": "https://adrianyounge.bandcamp.com/track/life-never-ends",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=3191756407/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Just Love",
+      "artist": "The Delfonics · Adrian Younge",
+      "album": "Adrian Younge Presents: The Delfonics (2013)",
+      "category": "Features",
+      "role": "Featured vocals",
+      "source": "https://adrianyounge.bandcamp.com/track/just-love",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=1064075979/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Party’s Over",
+      "artist": "The Delfonics · Adrian Younge",
+      "album": "Adrian Younge Presents: The Delfonics (2013)",
+      "category": "Features",
+      "role": "Featured vocals",
+      "source": "https://adrianyounge.bandcamp.com/track/party-s-over",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=2559144054/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Black Dynamite Theme",
+      "artist": "Adrian Younge",
+      "album": "Black Dynamite soundtrack (2009)",
+      "category": "Screen",
+      "role": "Credited vocals / featured artist",
+      "source": "https://adrianyounge.bandcamp.com/track/black-dynamite-theme-2",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=13483233/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Man with the Heat (Superbad)",
+      "artist": "Adrian Younge",
+      "album": "Black Dynamite soundtrack (2009)",
+      "category": "Screen",
+      "role": "Credited vocals / featured artist",
+      "source": "https://adrianyounge.bandcamp.com/track/man-with-the-heat-superbad-2",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=1189271723/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Shine",
+      "artist": "Adrian Younge",
+      "album": "Black Dynamite soundtrack (2009)",
+      "category": "Screen",
+      "role": "Credited vocals / featured artist",
+      "source": "https://adrianyounge.bandcamp.com/track/shine-2",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=3645593485/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Shot Me in the Heart",
+      "artist": "Adrian Younge",
+      "album": "Black Dynamite soundtrack (2009)",
+      "category": "Screen",
+      "role": "Credited vocals / featured artist",
+      "source": "https://adrianyounge.bandcamp.com/track/shot-me-in-the-heart-2",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=3093527435/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Black They Back",
+      "artist": "Adrian Younge",
+      "album": "Black Dynamite soundtrack (2009)",
+      "category": "Screen",
+      "role": "Credited vocals / featured artist",
+      "source": "https://adrianyounge.bandcamp.com/track/black-they-back-2",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=254806458/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Gloria (Zodiac Lovers)",
+      "artist": "Adrian Younge",
+      "album": "Black Dynamite soundtrack (2009)",
+      "category": "Screen",
+      "role": "Credited vocals / featured artist",
+      "source": "https://adrianyounge.bandcamp.com/track/gloria-zodiac-lovers-2",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=556000116/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Jimmy’s Apartment",
+      "artist": "Adrian Younge",
+      "album": "Black Dynamite soundtrack (2009)",
+      "category": "Screen",
+      "role": "Credited vocals / featured artist",
+      "source": "https://adrianyounge.bandcamp.com/track/jimmy-s-apartment-2",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=2755885664/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Anaconda Unscrew You",
+      "artist": "Adrian Younge",
+      "album": "Black Dynamite soundtrack (2009)",
+      "category": "Screen",
+      "role": "Credited vocals / featured artist",
+      "source": "https://adrianyounge.bandcamp.com/track/anaconda-unscrew-you",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=1588515522/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "There Is No Greater Love",
+      "artist": "The Midnight Hour · Saudia Yasmein & Loren Oden",
+      "album": "The Midnight Hour (2018)",
+      "category": "Features",
+      "role": "Featured vocals",
+      "source": "https://themidnighthour.bandcamp.com/track/there-is-no-greater-love-feat-loren-oden-and-saudia-yasmein",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=3460389837/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "I Am The Black Gold Of The Sun",
+      "artist": "The Decoders",
+      "album": "I Am The Black Gold Of The Sun (2012)",
+      "category": "Features",
+      "role": "Lead and background vocals",
+      "source": "https://thedecoders.bandcamp.com/track/i-am-the-black-gold-of-the-sun/track/i-am-the-black-gold-of-the-sun",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=3276744211/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Enough!",
+      "artist": "Big Daddy Kane · Chuck D & Loren Oden",
+      "album": "Enough! (2020)",
+      "category": "Features",
+      "role": "Featured vocals",
+      "source": "https://music.apple.com/us/artist/loren-oden/890306506",
+      "embed": ""
+    },
+    {
+      "title": "Dope!",
+      "artist": "Royce da 5′9″ · Loren W. Oden",
+      "album": "Layers (2016)",
+      "category": "Features",
+      "role": "Featured vocals",
+      "source": "https://open.spotify.com/search/Dope%21%20Royce%20Loren%20Oden",
+      "embed": ""
+    },
+    {
+      "title": "It's All Us",
+      "artist": "Nayanna Holley · Adrian Younge & Ali Shaheed Muhammad",
+      "album": "Reasonable Doubt (2022)",
+      "category": "Screen",
+      "role": "Background vocals",
+      "source": "https://music.apple.com/us/song/1645128118",
+      "embed": "https://embed.music.apple.com/us/song/1645128118"
+    },
+    {
+      "title": "It's All Us (Extended Version)",
+      "artist": "Nayanna Holley · Adrian Younge & Ali Shaheed Muhammad",
+      "album": "Reasonable Doubt, Season 2 (2024)",
+      "category": "Screen",
+      "role": "Vocals",
+      "source": "https://music.apple.com/us/song/1767492784",
+      "embed": "https://embed.music.apple.com/us/song/1767492784"
+    },
+    {
+      "title": "There Is No Greater Love (Live)",
+      "artist": "The Midnight Hour · Loren Oden",
+      "album": "The Midnight Hour Live At Linear Labs (2019)",
+      "category": "Live",
+      "role": "Featured vocals",
+      "source": "https://themidnighthour.bandcamp.com/track/there-is-no-greater-love-ft-loren-oden",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=546359762/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Do It Together (Live)",
+      "artist": "The Midnight Hour · Loren Oden",
+      "album": "The Midnight Hour Live At Linear Labs (2019)",
+      "category": "Live",
+      "role": "Featured vocals",
+      "source": "https://themidnighthour.bandcamp.com/track/do-it-together-ft-loren-oden",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=4084330768/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Dans Un Moment D’errance (Live)",
+      "artist": "The Midnight Hour · Loren Oden",
+      "album": "The Midnight Hour Live At Linear Labs (2019)",
+      "category": "Live",
+      "role": "Featured vocals",
+      "source": "https://themidnighthour.bandcamp.com/track/dans-un-moment-derrance-ft-loren-oden",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=1193169864/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "Questions (Live)",
+      "artist": "The Midnight Hour · Loren Oden",
+      "album": "The Midnight Hour Live At Linear Labs (2019)",
+      "category": "Live",
+      "role": "Featured vocals",
+      "source": "https://themidnighthour.bandcamp.com/track/questions-ft-loren-oden",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=384672534/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    },
+    {
+      "title": "It's You (Live)",
+      "artist": "The Midnight Hour · Loren Oden",
+      "album": "The Midnight Hour Live At Linear Labs (2019)",
+      "category": "Live",
+      "role": "Featured vocals",
+      "source": "https://themidnighthour.bandcamp.com/track/its-you-ft-loren-oden",
+      "embed": "https://bandcamp.com/EmbeddedPlayer/track=2068322/size=large/bgcol=0b0c10/linkcol=c8ff1e/tracklist=false/artwork=small/transparent=true/"
+    }
+  ],
+  "shows": [
+    {
+      "kind": "past",
+      "date_label": "28 Aug 2022",
+      "venue": "Lodge Room · Jazz Is Dead",
+      "location": "Los Angeles, California",
+      "note": "Artform Studio recap names Loren in its photo caption.",
+      "url": "https://www.theartformstudio.com/news-1/2022/8/29/jazz-is-dead-2022-tour-la-show-recap"
+    },
+    {
+      "kind": "past",
+      "date_label": "May 2019",
+      "venue": "Norwich Arts Centre · The Midnight Hour",
+      "location": "Norwich, England",
+      "note": "The Wordplay review does not establish the exact day, so the month is used.",
+      "url": "https://www.wordplaymagazine.com/blog-1/2019/5/3/the-midnight-hour-nac"
+    },
+    {
+      "kind": "past",
+      "date_label": "Fall 2019",
+      "venue": "The Midnight Hour · North American tour",
+      "location": "United States & Canada",
+      "note": "An announced itinerary including Loren, not verification that every date occurred.",
+      "url": "https://www.theartformstudio.com/news-1/2019/9/17/the-midnight-hour-us-tour-2019"
+    },
+    {
+      "kind": "past",
+      "date_label": "18 Jul 2018",
+      "venue": "The Midnight Hour · NPR Tiny Desk",
+      "location": "NPR session",
+      "note": "Publication date of the session, not a ticketed date. Watch the performance ↗",
+      "url": "https://www.youtube.com/watch?v=1PYNStp9jY0"
+    }
+  ],
+  "credits": [
+    {
+      "meta": "Film · 2009",
+      "title": "Black Dynamite",
+      "body": "Featured and lead vocals on Adrian Younge’s soundtrack, including Black Dynamite Theme, Shot Me in the Heart and Gloria (Zodiac Lovers).",
+      "url": "https://www.linearlabsmusic.com/lorenoden"
+    },
+    {
+      "meta": "TV · 2016–2018",
+      "title": "Marvel’s Luke Cage",
+      "body": "Vocal contributions documented in the official label bio. Feel Alive is also listed as a series song placement.",
+      "url": "https://www.linearlabsmusic.com/lorenoden"
+    },
+    {
+      "meta": "Series · 2019",
+      "title": "When They See Us",
+      "body": "Feel Alive by The Midnight Hour, featuring Karolina & Loren Oden, in Part 3. A song placement, not a series-composer credit.",
+      "url": "https://www.whatsong.org/tvshow/when-they-see-us/episode/74980"
+    },
+    {
+      "meta": "TV · 2022",
+      "title": "Reasonable Doubt",
+      "body": "Background vocals on It’s All Us, with Nayanna Holley, Adrian Younge & Ali Shaheed Muhammad.",
+      "url": "https://music.apple.com/us/song/1645128118"
+    },
+    {
+      "meta": "TV · 2024",
+      "title": "Reasonable Doubt, Season 2",
+      "body": "Vocals on It’s All Us (Extended Version).",
+      "url": "https://music.apple.com/us/song/1767492784"
+    }
+  ],
+  "press": [
+    {
+      "meta": "SoulBounce · Sep 2020",
+      "title": "Loren Oden Drops Debut Album *My Heart, My Love* Presented By Adrian Younge",
+      "url": "https://soulbounce.com/2020/09/loren-oden-drops-debut-project-my-heart-my-love-presented-by-adrian-younge/"
+    },
+    {
+      "meta": "Buzz Bands LA · 14 Feb 2020",
+      "title": "Ears Wide Open: Loren Oden",
+      "url": "https://buzzbands.la/2020/02/14/ears-wide-open-loren-oden/"
+    },
+    {
+      "meta": "KCRW · 19 Nov 2019",
+      "title": "The Midnight Hour: *Harmony* featuring Loren Oden — Today’s Top Tune",
+      "url": "https://www.kcrw.com/shows/todays-top-tune/stories/the-midnight-hour-harmony-featuring-loren-oden"
+    },
+    {
+      "meta": "Wordplay · 3 May 2019",
+      "title": "The Midnight Hour — NAC · Norwich live review and photographs",
+      "url": "https://www.wordplaymagazine.com/blog-1/2019/5/3/the-midnight-hour-nac"
+    },
+    {
+      "meta": "BroadwayWorld · 12 Mar 2020",
+      "title": "Loren Oden Shares New Song *Queen*",
+      "url": "https://www.broadwayworld.com/bwwmusic/article/Loren-Oden-Shares-New-Song-Queen-20200312"
+    },
+    {
+      "meta": "NPR via WUNC · 18 Jul 2018",
+      "title": "The Midnight Hour: Tiny Desk Concert",
+      "url": "https://www.wunc.org/npr-music/2018-07-18/the-midnight-hour-tiny-desk-concert"
+    },
+    {
+      "meta": "AllMusic",
+      "title": "Loren Oden — artist profile, biography and session credits",
+      "url": "https://www.allmusic.com/artist/loren-oden-mn0003077996"
+    }
+  ],
+  "shots": [
+    {
+      "src": "assets/img/norwich-1",
+      "alt": "Loren Oden performing at a keyboard on stage in Norwich, England.",
+      "caption_bold": "Norwich, England",
+      "caption": "2019 · Photo: Matt Neville / Wordplay",
+      "width": 1313,
+      "height": 876,
+      "shape": "a"
+    },
+    {
+      "src": "assets/img/norwich-2",
+      "alt": "Loren Oden singing into a microphone on stage in Norwich.",
+      "caption_bold": "The Midnight Hour",
+      "caption": "UK tour · Photo: Matt Neville / Wordplay",
+      "width": 801,
+      "height": 1201,
+      "shape": "b"
+    },
+    {
+      "src": "assets/img/los-angeles",
+      "alt": "Brian Jackson, Adrian Younge, Loren Oden and Katalyst on stage at the Lodge Room, Los Angeles.",
+      "caption_bold": "Lodge Room, Los Angeles",
+      "caption": "28 August 2022 · Via The Artform Studio",
+      "width": 2500,
+      "height": 1667,
+      "shape": "c"
+    }
+  ],
+  "links": [
+    {
+      "label": "Bandcamp ↗",
+      "href": "https://lorenoden.bandcamp.com/"
+    },
+    {
+      "label": "Apple Music ↗",
+      "href": "https://music.apple.com/us/artist/loren-oden/890306506"
+    },
+    {
+      "label": "Bandsintown ↗",
+      "href": "https://www.bandsintown.com/a/12308882-loren-oden"
+    },
+    {
+      "label": "Linear Labs ↗",
+      "href": "https://www.linearlabsmusic.com/lorenoden"
+    },
+    {
+      "label": "From the Road →",
+      "href": "/gallery"
+    }
+  ]
+}

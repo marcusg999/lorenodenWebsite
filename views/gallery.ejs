@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<%- include('_head', { title: c['seo.gallery.title'], description: c['seo.gallery.description'], c: c, u: u }) %>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<%- include('_lantern') %>
+<%- include('_nav', { nav: nav, c: c, current: '/gallery', link: link, u: u }) %>
+
+<main id="main">
+<section class="sec" style="padding-top:clamp(108px,12vw,168px)">
+  <p class="sec-no" aria-hidden="true"></p>
+  <div class="sec-head">
+    <p class="kicker"><%= c['gallery.kicker'] %></p>
+    <h2 class="h2" data-kinetic-h><%= c['gallery.head'] %> <em><%= c['gallery.head_em'] %></em></h2>
+    <p class="lede" style="margin-top:1.2em"><%- rich(c['gallery.lede']) %></p>
+  </div>
+
+  <div class="gal">
+    <% shots.forEach(function (s) { %>
+    <figure class="shot shot-<%= ['a','b','c'].includes(s.shape) ? s.shape : 'a' %> rv">
+      <picture>
+        <source srcset="<%= u(s.src) %>.webp" type="image/webp">
+        <img src="<%= u(s.src) %>.jpg" width="<%= s.width %>" height="<%= s.height %>" loading="lazy"
+             alt="<%= s.alt %>">
+      </picture>
+      <figcaption><% if (s.caption_bold) { %><b><%= s.caption_bold %></b><% if (s.caption) { %> · <% } %><% } %><%= s.caption %></figcaption>
+    </figure>
+    <% }); %>
+  </div>
+</section>
+
+<section class="sec">
+  <p class="sec-no" aria-hidden="true"></p>
+  <div class="next-body rv">
+    <p class="kicker"><%= c['gallery.personal.kicker'] %></p>
+    <h2 class="next-h"><%= c['gallery.personal.head'] %><br><span><%= c['gallery.personal.head_hi'] %></span></h2>
+    <p class="lede" style="margin-top:clamp(20px,2.6vw,40px)"><%- rich(c['gallery.personal.lede']) %></p>
+    <% if (c['gallery.personal.note']) { %>
+    <p class="note" style="margin-top:28px"><%- rich(c['gallery.personal.note']) %></p>
+    <% } %>
+  </div>
+</section>
+</main>
+
+<footer class="foot">
+  <h2 class="foot-mark"><%= c['gallery.footer.mark'] %><br><%= c['gallery.footer.mark2'] %></h2>
+  <div class="foot-links">
+    <a href="<%= link('/') %>">← Back to the music</a>
+    <% links.filter(function (l) { return isExternal(l.href); }).slice(0, 3).forEach(function (l) { %>
+    <a href="<%= link(l.href) %>" target="_blank" rel="noopener"><%= l.label %></a>
+    <% }); %>
+  </div>
+  <div class="foot-base">
+    <span><%= c['gallery.footer.credits'] %></span>
+    <span><%= c['gallery.footer.note'] %></span>
+    <span>© <%= year %> <%= c['footer.copyright'] %></span>
+  </div>
+</footer>
+
+<script src="<%= u('/js/lantern.js') %>"></script>
+</body>
+</html>
