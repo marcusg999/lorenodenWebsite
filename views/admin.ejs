@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Portal · Loren Oden</title>
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/css/lantern.css">
+<link rel="stylesheet" href="/css/admin.css">
+</head>
+<body class="admin-body">
+<header class="ad-top">
+  <a class="ad-mark" href="/admin">Loren Oden · Portal</a>
+  <span class="ad-who">Signed in as <%= username %></span>
+  <span class="spacer"></span>
+  <div class="ad-act">
+    <a class="sbtn" href="/" target="_blank" rel="noopener">View site ↗</a>
+    <form method="post" action="/admin/logout" style="display:inline">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <button class="sbtn danger" type="submit">Sign out</button>
+    </form>
+  </div>
+</header>
+
+<div class="ad-wrap">
+  <aside class="ad-side">
+    <h3>Copy &amp; links</h3>
+    <% groups.forEach(function (g, i) { %>
+      <button class="ad-nav" type="button" data-panel="g-<%= g.id %>"<%= i === 0 ? ' aria-current="true"' : '' %>><%= g.label %></button>
+    <% }); %>
+    <h3>Lists</h3>
+    <% Object.entries(collections).forEach(function ([t, meta]) { %>
+      <button class="ad-nav" type="button" data-panel="c-<%= t %>"><%= meta.label %><span class="n"><%= rows[t].length %></span></button>
+    <% }); %>
+    <h3>Account</h3>
+    <button class="ad-nav" type="button" data-panel="account">Change password</button>
+  </aside>
+
+  <main class="ad-main">
+    <!-- ======== content groups ======== -->
+    <% groups.forEach(function (g, i) { %>
+    <section class="panel" id="g-<%= g.id %>"<%= i === 0 ? '' : ' hidden' %> data-kind="content">
+      <div class="p-head"><h2><%= g.label %></h2><p><%= g.blurb %></p></div>
+      <% g.fields.forEach(function (f) { %>
+        <% if (f.type === 'bool') { %>
+        <div class="field inline">
+          <input class="cb" type="checkbox" id="<%= f.key %>" data-key="<%= f.key %>"
+                 <%= (content[f.key] === '1') ? 'checked' : '' %>>
+          <label class="fl" for="<%= f.key %>"><%= f.label %></label>
+        </div>
+        <% if (f.help) { %><p class="fhelp" style="margin-top:-14px;margin-bottom:22px"><%= f.help %></p><% } %>
+        <% } else { %>
+        <div class="field">
+          <label class="fl" for="<%= f.key %>"><%= f.label %></label>
+          <% if (f.type === 'textarea') { %>
+            <textarea class="ft" id="<%= f.key %>" data-key="<%= f.key %>" rows="3"><%= content[f.key] %></textarea>
+          <% } else { %>
+            <input class="fi" id="<%= f.key %>" data-key="<%= f.key %>" type="text"
+                   <%= f.type === 'url' ? 'inputmode="url" spellcheck="false"' : '' %>
+                   value="<%= content[f.key] %>">
+          <% } %>
+          <% if (f.help) { %><p class="fhelp"><%= f.help %></p><% } %>
+        </div>
+        <% } %>
+      <% }); %>
+    </section>
+    <% }); %>
+
+    <!-- ======== collections ======== -->
+    <% Object.entries(collections).forEach(function ([t, meta]) { %>
+    <section class="panel" id="c-<%= t %>" hidden data-kind="collection" data-table="<%= t %>">
+      <div class="p-head">
+        <h2><%= meta.label %></h2>
+        <p>Drag order with the arrows. Changes save together.</p>
+      </div>
+      <div class="items" id="items-<%= t %>"></div>
+      <button class="sbtn" type="button" data-add="<%= t %>" style="margin-top:6px">＋ Add <%= meta.singularLabel %></button>
+    </section>
+    <% }); %>
+
+    <!-- ======== account ======== -->
+    <section class="panel" id="account" hidden data-kind="account">
+      <div class="p-head"><h2>Change password</h2><p>At least twelve characters.</p></div>
+      <div class="field"><label class="fl" for="pw-cur">Current password</label>
+        <input class="fi" id="pw-cur" type="password" autocomplete="current-password"></div>
+      <div class="field"><label class="fl" for="pw-new">New password</label>
+        <input class="fi" id="pw-new" type="password" autocomplete="new-password"></div>
+      <div class="field"><label class="fl" for="pw-rep">Repeat new password</label>
+        <input class="fi" id="pw-rep" type="password" autocomplete="new-password"></div>
+      <button class="sbtn primary" type="button" id="pw-go">Update password</button>
+    </section>
+  </main>
+</div>
+
+<div class="savebar" id="savebar">
+  <span class="msg" id="savemsg"><b>Unsaved changes</b></span>
+  <span class="spacer"></span>
+  <button class="sbtn" type="button" id="revert">Discard</button>
+  <button class="sbtn primary" type="button" id="save">Save changes</button>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="application/json" id="admin-data"><%-
+  JSON.stringify({ csrf: csrf, rows: rows, columns: columns, collections: collections })
+      .replace(/</g, '\\u003c') %></script>
+<script src="/js/admin.js"></script>
+</body>
+</html>

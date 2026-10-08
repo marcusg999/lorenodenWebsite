@@ -1,0 +1,29 @@
+{
+  "name": "loren-oden-site",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Loren Oden — official site and admin portal",
+  "type": "commonjs",
+  "main": "server/app.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server/app.js",
+    "dev": "node --watch server/app.js",
+    "seed": "node server/seed.js",
+    "set-password": "node server/set-password.js",
+    "export": "node server/export-static.js",
+    "test": "node --test server/*.test.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^11.7.0",
+    "ejs": "^3.1.10",
+    "express": "^5.1.0",
+    "express-rate-limit": "^7.5.0",
+    "express-session": "^1.18.1",
+    "helmet": "^8.0.0",
+    "on-headers": "^1.1.0"
+  }
+}

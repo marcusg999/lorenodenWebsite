@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Sign in · Loren Oden</title>
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/css/lantern.css">
+<link rel="stylesheet" href="/css/admin.css">
+</head>
+<body class="admin-body login-body">
+  <main class="login-card">
+    <p class="kicker" style="color:var(--citron)">Loren Oden</p>
+    <h1 class="login-h">The portal</h1>
+    <% if (noUsers) { %>
+      <div class="flash warn">
+        <b>No account exists yet.</b> On the server, run<br>
+        <code>npm run set-password -- &lt;username&gt; '&lt;password&gt;'</code>
+      </div>
+    <% } %>
+    <% if (error) { %><div class="flash err"><%= error %></div><% } %>
+    <form method="post" action="/admin/login" autocomplete="on">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <label class="fl" for="username">Username</label>
+      <input class="fi" id="username" name="username" type="text" required autofocus
+             autocapitalize="none" autocomplete="username" spellcheck="false">
+      <label class="fl" for="password">Password</label>
+      <input class="fi" id="password" name="password" type="password" required
+             autocomplete="current-password">
+      <button class="btn" type="submit" style="margin-top:22px;width:100%;justify-content:center"><i></i>Sign in</button>
+    </form>
+    <p class="login-foot"><a href="/">← Back to the site</a></p>
+  </main>
+</body>
+</html>

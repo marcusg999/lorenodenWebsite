@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<%- include('_head', { title: c['seo.home.title'], description: c['seo.home.description'], c: c }) %>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"MusicGroup","name":"<%= c['footer.mark'] %> <%= c['footer.mark2'] %>",
+"description":"<%= c['seo.home.description'] %>",
+"genre":["Soul","R&B","Jazz"],"foundingLocation":{"@type":"Place","name":"<%= c['footer.base1'] %>"},
+"sameAs":[<%- links.filter(l => isExternal(l.href)).map(l => JSON.stringify(l.href)).join(',') %>]}
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<%- include('_lantern') %>
+<%- include('_nav', { nav: nav, c: c, current: '/', safeHref: safeHref }) %>
+
+<main id="main">
+<div id="top"></div>
+
+<!-- ======================= HERO ======================= -->
+<section class="hero-track" aria-label="Introduction">
+  <div class="hero">
+    <canvas id="orbit" aria-hidden="true"></canvas>
+    <div class="hero-inner">
+      <p class="eyebrow"><%= c['hero.eyebrow'] %></p>
+      <h1 class="wordmark" data-kinetic>
+        <span class="ln" data-word="<%= c['hero.name1'] %>"><%= c['hero.name1'] %></span>
+        <span class="ln" data-word="<%= c['hero.name2'] %>"><%= c['hero.name2'] %></span>
+      </h1>
+      <div class="hero-meta">
+        <p class="hero-role"><%= c['hero.role'] %></p>
+        <p class="hero-line"><%= c['hero.line'] %></p>
+      </div>
+      <div class="hero-actions">
+        <a class="btn" href="<%- safeHref(c['hero.cta1.href']) %>"><i></i><%= c['hero.cta1.label'] %></a>
+        <a class="btn ghost" href="<%- safeHref(c['hero.cta2.href']) %>"><i></i><%= c['hero.cta2.label'] %></a>
+      </div>
+    </div>
+    <% var strip = stripItems(c['hero.strip']); if (strip.length) { %>
+    <p class="hero-strip" aria-hidden="true"><% strip.forEach(function (s, i) { %><%
+      if (i) { %><i></i><% }
+      if (s.hi) { %><b><%= s.text %></b><% } else { %><%= s.text %><% } %><% }); %></p>
+    <% } %>
+    <p class="ignite" aria-hidden="true"><%= c['hero.ignite'] %></p>
+    <p class="scroll-cue" aria-hidden="true"><i></i><%= c['hero.scroll'] %></p>
+  </div>
+</section>
+
+<!-- ======================= ABOUT ======================= -->
+<section class="sec" id="about">
+  <p class="sec-no">01</p>
+  <div class="portrait-wrap rv">
+    <picture>
+      <source srcset="/<%= c['about.portrait.src'] %>.webp" type="image/webp">
+      <img class="portrait" src="/<%= c['about.portrait.src'] %>.jpg" width="1500" height="1500"
+           alt="<%= c['about.portrait.alt'] %>" loading="lazy">
+    </picture>
+    <p class="credit"><%= c['about.portrait.credit'] %></p>
+  </div>
+  <div class="about-copy rv">
+    <p class="kicker"><%= c['about.kicker'] %></p>
+    <h2 class="h2" data-kinetic-h><%= c['about.head'] %><br><em><%= c['about.head_em'] %></em></h2>
+    <p class="lede"><%- rich(c['about.body']) %></p>
+    <p class="pull"><%- rich(c['about.pull']) %></p>
+  </div>
+</section>
+
+<!-- ======================= CURRENT MUSIC ======================= -->
+<section class="sec" id="releases">
+  <p class="sec-no">02</p>
+  <div class="sec-head rv">
+    <p class="kicker"><%= c['releases.kicker'] %></p>
+    <h2 class="h2" data-kinetic-h><%= c['releases.head'] %> <em><%= c['releases.head_em'] %></em></h2>
+  </div>
+  <div class="rel-list">
+    <% releases.forEach(function (r) { %>
+    <a class="rel rv" href="<%- safeHref(r.url) %>"<%- isExternal(r.url) ? ' target="_blank" rel="noopener"' : '' %>>
+      <div><% if (r.tag) { %><span class="rel-tag"><%= r.tag %></span><% } %>
+        <h3 class="rel-t"><%= r.title %></h3></div>
+      <p class="rel-d"><%- rich(r.body) %></p>
+      <% if (r.link_label) { %><p class="rel-go"><%= r.link_label %> →</p><% } %>
+    </a>
+    <% }); %>
+  </div>
+</section>
+
+<!-- ======================= THE LISTENING ROOM ======================= -->
+<section class="sec" id="room">
+  <p class="sec-no">03</p>
+  <div class="sec-head rv">
+    <p class="kicker"><%= c['room.kicker'] %></p>
+    <h2 class="h2" data-kinetic-h><%= c['room.head'] %><br><em><%= c['room.head_em'] %></em></h2>
+    <p class="lede" style="margin-top:1.2em"><%- rich(c['room.lede']) %></p>
+  </div>
+
+  <div class="room-grid">
+    <div class="room-player">
+      <div class="player-card">
+        <p class="pc-no" id="pcNo">01 / <%= counts.all %></p>
+        <h3 class="pc-title" id="pcTitle"></h3>
+        <p class="pc-artist" id="pcArtist"></p>
+        <p class="pc-album" id="pcAlbum"></p>
+        <span class="pc-role" id="pcRole"></span>
+        <div class="pc-embed" id="pcEmbed"></div>
+        <div class="pc-nav">
+          <button class="pc-btn" id="pcPrev" type="button">← Prev</button>
+          <button class="pc-btn" id="pcNext" type="button">Next →</button>
+          <a class="pc-src" id="pcSrc" href="#" target="_blank" rel="noopener">Source ↗</a>
+        </div>
+      </div>
+      <p class="note" style="margin-top:14px"><%- rich(c['room.note']) %></p>
+    </div>
+
+    <div class="room-index">
+      <div class="filters" role="group" aria-label="Filter selections">
+        <button class="filt" type="button" data-f="All" aria-pressed="true">All <%= counts.all %></button>
+        <% ['Solo','Features','Screen','Live'].forEach(function (k) { if (counts[k]) { %>
+        <button class="filt" type="button" data-f="<%= k %>" aria-pressed="false"><%= k %> <%= counts[k] %></button>
+        <% } }); %>
+      </div>
+      <ul class="tracklist" id="tracklist"></ul>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= SHOWS ======================= -->
+<section class="sec" id="shows">
+  <p class="sec-no">04</p>
+  <div class="sec-head rv">
+    <p class="kicker"><%= c['shows.kicker'] %></p>
+    <h2 class="h2" data-kinetic-h><%= c['shows.head'] %> <em><%= c['shows.head_em'] %></em></h2>
+  </div>
+
+  <% if (upcoming.length) { %>
+  <div class="tbl rv">
+    <p class="kicker" style="margin-bottom:0"><%= c['shows.upcoming.kicker'] %></p>
+    <% upcoming.forEach(function (s) { %>
+    <a class="row row-3" href="<%- safeHref(s.url) %>"<%- isExternal(s.url) ? ' target="_blank" rel="noopener"' : '' %>>
+      <p class="row-k"><%= s.date_label %></p>
+      <p class="row-m"><%= s.venue %></p>
+      <p class="row-s"><%= [s.location, s.note].filter(Boolean).join(' · ') %></p>
+    </a>
+    <% }); %>
+  </div>
+  <% } else if (truthy(c['shows.empty.show'])) { %>
+  <div class="empty rv">
+    <div>
+      <p class="big"><%= c['shows.empty.head'] %></p>
+      <p class="note"><%- rich(c['shows.empty.note']) %></p>
+    </div>
+    <% if (c['shows.empty.cta.label']) { %>
+    <a class="btn" href="<%- safeHref(c['shows.empty.cta.href']) %>" target="_blank" rel="noopener"><i></i><%= c['shows.empty.cta.label'] %></a>
+    <% } %>
+  </div>
+  <% } %>
+
+  <% if (past.length) { %>
+  <div class="tbl rv">
+    <p class="kicker" style="margin-bottom:0"><%= c['shows.archive.kicker'] %></p>
+    <% past.forEach(function (s) { %>
+    <a class="row row-3" href="<%- safeHref(s.url) %>"<%- isExternal(s.url) ? ' target="_blank" rel="noopener"' : '' %>>
+      <p class="row-k"><%= s.date_label %></p>
+      <p class="row-m"><%= s.venue %></p>
+      <p class="row-s"><%= [s.location, s.note].filter(Boolean).join('. ') %></p>
+    </a>
+    <% }); %>
+  </div>
+  <% } %>
+</section>
+
+<!-- ======================= FILM & TV ======================= -->
+<section class="sec" id="screen">
+  <p class="sec-no">05</p>
+  <div class="sec-head rv">
+    <p class="kicker"><%= c['screen.kicker'] %></p>
+    <h2 class="h2" data-kinetic-h><%= c['screen.head'] %> <em><%= c['screen.head_em'] %></em></h2>
+  </div>
+  <div class="tbl rv">
+    <% credits.forEach(function (r) { %>
+    <a class="row row-3" href="<%- safeHref(r.url) %>"<%- isExternal(r.url) ? ' target="_blank" rel="noopener"' : '' %>>
+      <p class="row-k"><%= r.meta %></p>
+      <p class="row-m"><%= r.title %></p>
+      <p class="row-s"><%- rich(r.body) %></p>
+    </a>
+    <% }); %>
+  </div>
+  <% if (c['screen.note']) { %>
+  <p class="note rv" style="grid-column:2/13;margin-top:22px"><%- rich(c['screen.note']) %></p>
+  <% } %>
+</section>
+
+<!-- ======================= PRESS ======================= -->
+<section class="sec" id="press">
+  <p class="sec-no">06</p>
+  <div class="sec-head rv">
+    <p class="kicker"><%= c['press.kicker'] %></p>
+    <h2 class="h2" data-kinetic-h><%= c['press.head'] %> <em><%= c['press.head_em'] %></em></h2>
+  </div>
+  <div class="tbl rv">
+    <% press.forEach(function (r) { %>
+    <a class="row row-2" href="<%- safeHref(r.url) %>"<%- isExternal(r.url) ? ' target="_blank" rel="noopener"' : '' %>>
+      <p class="row-k"><%= r.meta %></p>
+      <p class="row-m"><%- rich(r.title) %></p>
+    </a>
+    <% }); %>
+  </div>
+</section>
+
+<!-- ======================= NEXT ======================= -->
+<section class="sec" id="next">
+  <p class="sec-no">07</p>
+  <div class="next-body rv">
+    <p class="kicker"><%= c['next.kicker'] %></p>
+    <h2 class="next-h"><%= c['next.head'] %><br><span><%= c['next.head_hi'] %></span></h2>
+    <p class="lede" style="margin-top:clamp(20px,2.6vw,40px)"><%- rich(c['next.body']) %></p>
+  </div>
+</section>
+</main>
+
+<footer class="foot">
+  <h2 class="foot-mark"><%= c['footer.mark'] %><br><%= c['footer.mark2'] %></h2>
+  <div class="foot-links">
+    <% links.forEach(function (l) { %>
+    <a href="<%- safeHref(l.href) %>"<%- isExternal(l.href) ? ' target="_blank" rel="noopener"' : '' %>><%= l.label %></a>
+    <% }); %>
+  </div>
+  <div class="foot-base">
+    <span><%= c['footer.base1'] %></span>
+    <span><%= c['footer.base2'] %></span>
+    <span>© <%= year %> <%= c['footer.copyright'] %></span>
+  </div>
+</footer>
+
+<script src="/data/catalog.js"></script>
+<script src="/js/lantern.js"></script>
+<script src="/js/listening.js"></script>
+</body>
+</html>
