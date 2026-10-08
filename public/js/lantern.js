@@ -92,7 +92,7 @@
     // cover
     var s = Math.max(cw / im.naturalWidth, ch / im.naturalHeight);
     var dw = im.naturalWidth * s, dh = im.naturalHeight * s;
-    ctx.fillStyle = '#06060A'; ctx.fillRect(0, 0, cw, ch);
+    ctx.fillStyle = '#111110'; ctx.fillRect(0, 0, cw, ch);
     ctx.drawImage(im, (cw - dw) * .42, (ch - dh) * .5, dw, dh);
   }
 
@@ -222,8 +222,8 @@
         dx.beginPath();
         dx.arc(q.x, q.y, q.r, 0, 6.2832);
         dx.fillStyle = q.c
-          ? 'rgba(63,232,255,' + (vis * tw * .34).toFixed(3) + ')'
-          : 'rgba(200,255,30,' + (vis * tw * .42).toFixed(3) + ')';
+          ? 'rgba(244,239,228,' + (vis * tw * .30).toFixed(3) + ')'
+          : 'rgba(228,173,110,' + (vis * tw * .44).toFixed(3) + ')';
         dx.fill();
       }
       dx.globalCompositeOperation = 'source-over';
