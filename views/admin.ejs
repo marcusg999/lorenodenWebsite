@@ -50,6 +50,12 @@
           <label class="fl" for="<%= f.key %>"><%= f.label %></label>
         </div>
         <% if (f.help) { %><p class="fhelp" style="margin-top:-14px;margin-bottom:22px"><%= f.help %></p><% } %>
+        <% } else if (f.type === 'image') { %>
+        <div class="field">
+          <label class="fl"><%= f.label %></label>
+          <div class="imgfield" data-image="<%= f.key %>" data-value="<%= content[f.key] %>"></div>
+          <% if (f.help) { %><p class="fhelp"><%= f.help %></p><% } %>
+        </div>
         <% } else { %>
         <div class="field">
           <label class="fl" for="<%= f.key %>"><%= f.label %></label>
@@ -100,6 +106,17 @@
   <button class="sbtn primary" type="button" id="save">Save changes</button>
 </div>
 <div class="toast" id="toast"></div>
+
+<div class="modal" id="media-modal" hidden>
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Image library</h3>
+      <span style="margin-left:auto"></span>
+      <button class="sbtn" type="button" data-close-modal>Close</button>
+    </div>
+    <div class="modal-body"></div>
+  </div>
+</div>
 
 <script type="application/json" id="admin-data"><%-
   JSON.stringify({ csrf: csrf, rows: rows, columns: columns, collections: collections })

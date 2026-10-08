@@ -14,7 +14,10 @@
     "seed": "node server/seed.js",
     "set-password": "node server/set-password.js",
     "export": "node server/export-static.js",
-    "test": "node --test server/*.test.js"
+    "test": "node --test server/*.test.js",
+    "content:export": "node server/content.js export",
+    "content:import": "node server/content.js import",
+    "build": "node server/export-static.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -24,6 +27,8 @@
     "express-rate-limit": "^7.5.0",
     "express-session": "^1.18.1",
     "helmet": "^8.0.0",
-    "on-headers": "^1.1.0"
+    "multer": "^2.4.0",
+    "on-headers": "^1.1.0",
+    "sharp": "^0.35.5"
   }
 }

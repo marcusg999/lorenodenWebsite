@@ -1,8 +1,8 @@
 <nav class="nav" aria-label="Primary">
-  <a class="mark" href="/"><%= c['footer.mark'] %>&nbsp;<%= c['footer.mark2'] %></a>
+  <a class="mark" href="<%= link('/') %>"><%= c['footer.mark'] %>&nbsp;<%= c['footer.mark2'] %></a>
   <div class="nav-links">
     <% nav.forEach(function (n) { %>
-      <a href="<%- safeHref(n.href) %>"<%= current === n.href ? ' aria-current="page"' : '' %><%-
+      <a href="<%= link(n.href) %>"<%= current === n.href ? ' aria-current="page"' : '' %><%-
         current === n.href ? ' style="opacity:1;color:var(--citron)"' : '' %>><%= n.label %></a>
     <% }); %>
   </div>

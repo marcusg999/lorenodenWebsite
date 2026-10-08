@@ -18,7 +18,7 @@ let server, base, SESSION;
 const PW = 'quiet-lantern-9471';
 
 before(async () => {
-  replaceRows('nav', [{ label: 'Music', href: '/#room' }]);
+  replaceRows('nav', [{ label: 'Music', href: '/#room' }, { label: 'From the Road', href: '/gallery' }]);
   replaceRows('tracks', [
     { title: 'Through My Soul', artist: 'Adrian Younge', album: 'x', category: 'Features', role: 'Featured vocals', source: 'https://example.com', embed: '' },
     { title: 'Is There a Way', artist: 'Loren Oden', album: 'y', category: 'Solo', role: 'Lead vocals', source: 'https://example.com', embed: '' },
@@ -242,4 +242,108 @@ test('repeated failed sign-ins are rate limited', async () => {
     if (r.status === 429) saw429 = true;
   }
   assert.ok(saw429, 'the login route must start refusing after repeated failures');
+});
+
+/* ---------------- image upload ---------------- */
+const sharpLib = require('sharp');
+const makePng = (w = 1200, h = 800) =>
+  sharpLib({ create: { width: w, height: h, channels: 3, background: '#C8FF1E' } }).png().toBuffer();
+
+async function postImage(buf, filename, { cookie, csrf }, type = 'image/png') {
+  const fd = new FormData();
+  fd.append('image', new Blob([buf], { type }), filename);
+  return fetch(`${base}/api/upload`, { method: 'POST', headers: { cookie, 'X-CSRF-Token': csrf }, body: fd });
+}
+
+test('upload rejects anonymous callers', async () => {
+  const fd = new FormData();
+  fd.append('image', new Blob([await makePng()], { type: 'image/png' }), 'a.png');
+  const r = await fetch(`${base}/api/upload`, { method: 'POST', body: fd });
+  assert.equal(r.status, 401);
+});
+
+test('upload rejects a request without a CSRF token', async () => {
+  const fd = new FormData();
+  fd.append('image', new Blob([await makePng()], { type: 'image/png' }), 'a.png');
+  const r = await fetch(`${base}/api/upload`, { method: 'POST', headers: { cookie: SESSION.cookie }, body: fd });
+  assert.equal(r.status, 403);
+});
+
+test('an uploaded image is re-encoded to a .webp/.jpg pair and served', async () => {
+  const r = await postImage(await makePng(2600, 1700), 'Loren LIVE!! (final).PNG', SESSION);
+  assert.equal(r.status, 200);
+  const j = await r.json();
+  assert.match(j.src, /^assets\/uploads\/loren-live-final-[0-9a-f]{8}$/, 'name is sanitised and unique');
+  assert.ok(j.width <= 2200 && j.height <= 2200, 'oversized images are scaled down');
+  for (const ext of ['.webp', '.jpg']) {
+    const res = await fetch(`${base}/${j.src}${ext}`);
+    assert.equal(res.status, 200, `${ext} should be served`);
+  }
+  UPLOADED = j.src.split('/').pop();
+});
+let UPLOADED;
+
+test('a file that is not an image is refused', async () => {
+  const r = await postImage(Buffer.from('#!/bin/sh\necho pwned\n'), 'evil.jpg', SESSION, 'image/jpeg');
+  assert.equal(r.status, 400);
+  assert.match((await r.json()).error, /could not be read as an image/);
+});
+
+test('an SVG is refused (it can carry script)', async () => {
+  const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>');
+  const r = await postImage(svg, 'x.svg', SESSION, 'image/svg+xml');
+  assert.equal(r.status, 400);
+});
+
+test('an oversized file is refused', async () => {
+  const r = await postImage(Buffer.alloc(13 * 1024 * 1024, 1), 'big.jpg', SESSION, 'image/jpeg');
+  assert.equal(r.status, 400);
+  assert.match((await r.json()).error, /larger than/);
+});
+
+test('the media library lists the upload, and delete refuses traversal', async () => {
+  const { cookie, csrf } = SESSION;
+  const list = await (await fetch(`${base}/api/media`, { headers: { cookie } })).json();
+  assert.ok(list.media.some(m => m.name === UPLOADED), 'the upload should be listed');
+
+  const bad = await fetch(`${base}/api/media/${encodeURIComponent('../../package.json')}`, {
+    method: 'DELETE', headers: { cookie, 'X-CSRF-Token': csrf },
+  });
+  assert.equal(bad.status, 400);
+  assert.ok(require('fs').existsSync(require('path').join(__dirname, '..', 'package.json')), 'package.json must survive');
+
+  const ok = await fetch(`${base}/api/media/${UPLOADED}`, {
+    method: 'DELETE', headers: { cookie, 'X-CSRF-Token': csrf },
+  });
+  assert.equal(ok.status, 200);
+});
+
+/* ---------------- database-free static build ---------------- */
+test('the content file round-trips through the database', async () => {
+  const os2 = require('os'), fs2 = require('fs'), path2 = require('path');
+  const cf = require('./content-file');
+  const tmpFile = path2.join(fs2.mkdtempSync(path2.join(os2.tmpdir(), 'lo-cf-')), 'content.json');
+  const written = cf.exportFromDb(tmpFile);
+  assert.ok(Object.keys(written.content).length >= 70);
+  const read = cf.readFile(tmpFile);
+  assert.equal(read.tracks.length, written.tracks.length);
+  assert.equal(read.content['hero.name1'], written.content['hero.name1']);
+});
+
+test('the static build renders from JSON alone, with a base path and .html links', async () => {
+  const os2 = require('os'), fs2 = require('fs'), path2 = require('path'), ejs = require('ejs');
+  const cf = require('./content-file');
+  const { fileData } = require('./pagedata');
+  const tmpFile = path2.join(fs2.mkdtempSync(path2.join(os2.tmpdir(), 'lo-build-')), 'content.json');
+  cf.exportFromDb(tmpFile);
+
+  const views = path2.join(__dirname, '..', 'views');
+  const data = fileData(tmpFile, { base: '/lorenodenWebsite', staticMode: true });
+  const html = ejs.render(fs2.readFileSync(path2.join(views, 'index.ejs'), 'utf8'), data,
+    { views: [views], filename: path2.join(views, 'page.ejs') });
+
+  assert.match(html, /href="\/lorenodenWebsite\/css\/lantern\.css"/, 'assets carry the base path');
+  assert.match(html, /href="\/lorenodenWebsite\/gallery\.html"/, 'routes become .html files');
+  assert.ok(!/(href|src)="\/(css|js|assets|data)\//.test(html), 'no un-prefixed absolute asset URLs');
+  assert.ok(!/href="\/gallery"/.test(html), 'no server-only routes remain');
 });

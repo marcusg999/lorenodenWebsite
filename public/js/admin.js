@@ -80,7 +80,9 @@
           var v = row[c] == null ? '' : row[c];
           var wide = LONG.indexOf(c) >= 0 || c === 'source' || c === 'url' || c === 'href';
           var inner;
-          if (CHOICES[c]) {
+          if (c === 'src') {
+            inner = '<div class="imgfield" data-col="src" data-value="' + esc(v) + '"></div>';
+          } else if (CHOICES[c]) {
             inner = '<select class="fs" data-col="' + c + '">' + CHOICES[c].map(function (o) {
               return '<option value="' + esc(o) + '"' + (String(v) === o ? ' selected' : '') + '>' + esc(o) + '</option>';
             }).join('') + '</select>';
@@ -94,6 +96,7 @@
         }).join('') +
         '</div></div>';
     }).join('') || '<p class="fhelp">Nothing here yet.</p>';
+    Array.prototype.forEach.call(host.querySelectorAll('.imgfield'), paintImageField);
   }
 
   document.addEventListener('input', function (e) {
@@ -152,6 +155,137 @@
       if (!confirm('Remove “' + name + '”?\n\nIt is only removed for good once you save.')) return;
       state[t].splice(i, 1); dirtyTables[t] = true; renderTable(t); markDirty();
     }
+  });
+
+  /* ---------- image fields & the media picker ---------- */
+  function imgTag(src) {
+    return src ? '<img src="/' + esc(src) + '.webp" alt="" onerror="this.src=\'/' + esc(src) + '.jpg\'">'
+               : '<span class="none">None</span>';
+  }
+
+  function paintImageField(box) {
+    var v = box.dataset.value || '';
+    box.innerHTML =
+      '<div class="imgprev">' + imgTag(v) + '</div>' +
+      '<div class="imgmeta">' +
+        '<p class="imgpath">' + (esc(v) || '—') + '</p>' +
+        '<div class="imgacts">' +
+          '<button class="sbtn" type="button" data-act="upload">Upload…</button>' +
+          '<button class="sbtn" type="button" data-act="library">Library</button>' +
+          (v ? '<button class="sbtn danger" type="button" data-act="clear">Clear</button>' : '') +
+        '</div>' +
+        '<div class="upbar"><i></i></div>' +
+      '</div>' +
+      '<input type="file" accept="image/jpeg,image/png,image/webp,image/avif,image/tiff">';
+  }
+
+  function setImageValue(box, src, row) {
+    box.dataset.value = src;
+    paintImageField(box);
+    if (row) {                                  // a collection row's image column
+      state[row.t][row.i][row.col] = src;
+      dirtyTables[row.t] = true;
+    } else {
+      dirtyContent[box.dataset.image] = src;
+    }
+    markDirty();
+  }
+  function rowOf(box) {
+    var panel = box.closest('.panel[data-table]'), item = box.closest('.item');
+    if (!panel || !item) return null;
+    return { t: panel.dataset.table, i: +item.dataset.i, col: box.dataset.col };
+  }
+
+  function uploadFor(box, file) {
+    var bar = box.querySelector('.upbar');
+    if (bar) bar.classList.add('on');
+    var fd = new FormData(); fd.append('image', file);
+    return fetch('/api/upload', {
+      method: 'POST', headers: { 'X-CSRF-Token': A.csrf }, credentials: 'same-origin', body: fd
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (j) {
+        if (!r.ok) throw new Error(j.error || 'Upload failed.');
+        return j;
+      });
+    }).then(function (j) {
+      var row = rowOf(box);
+      setImageValue(box, j.src, row);
+      // a gallery photograph carries its own dimensions
+      if (row && state[row.t][row.i] && 'width' in state[row.t][row.i]) {
+        state[row.t][row.i].width = j.width;
+        state[row.t][row.i].height = j.height;
+        renderTable(row.t);
+      }
+      toast('Image uploaded. Save to publish it.');
+    }).catch(function (e) { toast(e.message, true); })
+      .finally(function () { var b = box.querySelector('.upbar'); if (b) b.classList.remove('on'); });
+  }
+
+  var pickerFor = null;
+  function openLibrary(box) {
+    pickerFor = box;
+    var modal = document.getElementById('media-modal');
+    var body = modal.querySelector('.modal-body');
+    body.innerHTML = '<p class="fhelp">Loading…</p>';
+    modal.hidden = false;
+    fetch('/api/media', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j.media.length) { body.innerHTML = '<p class="fhelp">Nothing uploaded yet.</p>'; return; }
+        body.innerHTML = '<div class="medgrid">' + j.media.map(function (m) {
+          return '<div class="medcell" data-src="' + esc(m.src) + '" data-name="' + esc(m.name) + '">' +
+                 '<button class="rm" type="button" data-rm="1" title="Delete">✕</button>' +
+                 '<img src="/' + esc(m.src) + '.webp" alt="" loading="lazy">' +
+                 '<div class="nm">' + esc(m.name) + '</div></div>';
+        }).join('') + '</div>';
+      })
+      .catch(function () { body.innerHTML = '<p class="fhelp">Could not load the library.</p>'; });
+  }
+  function closeLibrary() {
+    document.getElementById('media-modal').hidden = true;
+    pickerFor = null;
+  }
+
+  document.addEventListener('click', function (e) {
+    var box = e.target.closest('.imgfield');
+    if (box) {
+      var act = e.target.closest('[data-act]');
+      if (act) {
+        var a = act.dataset.act;
+        if (a === 'upload') box.querySelector('input[type=file]').click();
+        else if (a === 'library') openLibrary(box);
+        else if (a === 'clear') setImageValue(box, '', rowOf(box));
+        return;
+      }
+    }
+    var cell = e.target.closest('.medcell');
+    if (cell) {
+      if (e.target.closest('[data-rm]')) {
+        if (!confirm('Delete “' + cell.dataset.name + '” for good?\n\nAnything still pointing at it will lose its image.')) return;
+        fetch('/api/media/' + encodeURIComponent(cell.dataset.name), {
+          method: 'DELETE', headers: { 'X-CSRF-Token': A.csrf }, credentials: 'same-origin'
+        }).then(function (r) { return r.json(); })
+          .then(function (j) { if (j.error) throw new Error(j.error); cell.remove(); toast('Deleted.'); })
+          .catch(function (err) { toast(err.message, true); });
+        return;
+      }
+      if (pickerFor) { setImageValue(pickerFor, cell.dataset.src, rowOf(pickerFor)); closeLibrary(); }
+      return;
+    }
+    if (e.target.closest('[data-close-modal]') ||
+        (e.target.id === 'media-modal')) closeLibrary();
+  });
+
+  document.addEventListener('change', function (e) {
+    if (e.target.type === 'file' && e.target.closest('.imgfield')) {
+      var f = e.target.files && e.target.files[0];
+      if (f) uploadFor(e.target.closest('.imgfield'), f);
+      e.target.value = '';
+    }
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeLibrary();
   });
 
   /* ---------- save ---------- */
@@ -230,4 +364,5 @@
 
   /* first render of whichever collection panels exist */
   Object.keys(A.rows).forEach(renderTable);
+  $$('.imgfield[data-image]').forEach(paintImageField);
 })();

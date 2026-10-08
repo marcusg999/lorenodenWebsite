@@ -6,3 +6,7 @@ data/site.db-shm
 .env
 *.log
 dist/
+
+# uploaded images are runtime data, not source
+public/assets/uploads/*
+!public/assets/uploads/.gitkeep

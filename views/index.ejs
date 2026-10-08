@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-<%- include('_head', { title: c['seo.home.title'], description: c['seo.home.description'], c: c }) %>
+<%- include('_head', { title: c['seo.home.title'], description: c['seo.home.description'], c: c, u: u }) %>
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"MusicGroup","name":"<%= c['footer.mark'] %> <%= c['footer.mark2'] %>",
 "description":"<%= c['seo.home.description'] %>",
@@ -12,7 +12,7 @@
 <body>
 <a class="skip" href="#main">Skip to content</a>
 <%- include('_lantern') %>
-<%- include('_nav', { nav: nav, c: c, current: '/', safeHref: safeHref }) %>
+<%- include('_nav', { nav: nav, c: c, current: '/', link: link, u: u }) %>
 
 <main id="main">
 <div id="top"></div>
@@ -32,8 +32,8 @@
         <p class="hero-line"><%= c['hero.line'] %></p>
       </div>
       <div class="hero-actions">
-        <a class="btn" href="<%- safeHref(c['hero.cta1.href']) %>"><i></i><%= c['hero.cta1.label'] %></a>
-        <a class="btn ghost" href="<%- safeHref(c['hero.cta2.href']) %>"><i></i><%= c['hero.cta2.label'] %></a>
+        <a class="btn" href="<%= link(c['hero.cta1.href']) %>"><i></i><%= c['hero.cta1.label'] %></a>
+        <a class="btn ghost" href="<%= link(c['hero.cta2.href']) %>"><i></i><%= c['hero.cta2.label'] %></a>
       </div>
     </div>
     <% var strip = stripItems(c['hero.strip']); if (strip.length) { %>
@@ -51,8 +51,8 @@
   <p class="sec-no">01</p>
   <div class="portrait-wrap rv">
     <picture>
-      <source srcset="/<%= c['about.portrait.src'] %>.webp" type="image/webp">
-      <img class="portrait" src="/<%= c['about.portrait.src'] %>.jpg" width="1500" height="1500"
+      <source srcset="<%= u(c['about.portrait.src']) %>.webp" type="image/webp">
+      <img class="portrait" src="<%= u(c['about.portrait.src']) %>.jpg" width="1500" height="1500"
            alt="<%= c['about.portrait.alt'] %>" loading="lazy">
     </picture>
     <p class="credit"><%= c['about.portrait.credit'] %></p>
@@ -74,7 +74,7 @@
   </div>
   <div class="rel-list">
     <% releases.forEach(function (r) { %>
-    <a class="rel rv" href="<%- safeHref(r.url) %>"<%- isExternal(r.url) ? ' target="_blank" rel="noopener"' : '' %>>
+    <a class="rel rv" href="<%= link(r.url) %>"<%- isExternal(r.url) ? ' target="_blank" rel="noopener"' : '' %>>
       <div><% if (r.tag) { %><span class="rel-tag"><%= r.tag %></span><% } %>
         <h3 class="rel-t"><%= r.title %></h3></div>
       <p class="rel-d"><%- rich(r.body) %></p>
@@ -135,7 +135,7 @@
   <div class="tbl rv">
     <p class="kicker" style="margin-bottom:0"><%= c['shows.upcoming.kicker'] %></p>
     <% upcoming.forEach(function (s) { %>
-    <a class="row row-3" href="<%- safeHref(s.url) %>"<%- isExternal(s.url) ? ' target="_blank" rel="noopener"' : '' %>>
+    <a class="row row-3" href="<%= link(s.url) %>"<%- isExternal(s.url) ? ' target="_blank" rel="noopener"' : '' %>>
       <p class="row-k"><%= s.date_label %></p>
       <p class="row-m"><%= s.venue %></p>
       <p class="row-s"><%= [s.location, s.note].filter(Boolean).join(' · ') %></p>
@@ -149,7 +149,7 @@
       <p class="note"><%- rich(c['shows.empty.note']) %></p>
     </div>
     <% if (c['shows.empty.cta.label']) { %>
-    <a class="btn" href="<%- safeHref(c['shows.empty.cta.href']) %>" target="_blank" rel="noopener"><i></i><%= c['shows.empty.cta.label'] %></a>
+    <a class="btn" href="<%= link(c['shows.empty.cta.href']) %>" target="_blank" rel="noopener"><i></i><%= c['shows.empty.cta.label'] %></a>
     <% } %>
   </div>
   <% } %>
@@ -158,7 +158,7 @@
   <div class="tbl rv">
     <p class="kicker" style="margin-bottom:0"><%= c['shows.archive.kicker'] %></p>
     <% past.forEach(function (s) { %>
-    <a class="row row-3" href="<%- safeHref(s.url) %>"<%- isExternal(s.url) ? ' target="_blank" rel="noopener"' : '' %>>
+    <a class="row row-3" href="<%= link(s.url) %>"<%- isExternal(s.url) ? ' target="_blank" rel="noopener"' : '' %>>
       <p class="row-k"><%= s.date_label %></p>
       <p class="row-m"><%= s.venue %></p>
       <p class="row-s"><%= [s.location, s.note].filter(Boolean).join('. ') %></p>
@@ -177,7 +177,7 @@
   </div>
   <div class="tbl rv">
     <% credits.forEach(function (r) { %>
-    <a class="row row-3" href="<%- safeHref(r.url) %>"<%- isExternal(r.url) ? ' target="_blank" rel="noopener"' : '' %>>
+    <a class="row row-3" href="<%= link(r.url) %>"<%- isExternal(r.url) ? ' target="_blank" rel="noopener"' : '' %>>
       <p class="row-k"><%= r.meta %></p>
       <p class="row-m"><%= r.title %></p>
       <p class="row-s"><%- rich(r.body) %></p>
@@ -198,7 +198,7 @@
   </div>
   <div class="tbl rv">
     <% press.forEach(function (r) { %>
-    <a class="row row-2" href="<%- safeHref(r.url) %>"<%- isExternal(r.url) ? ' target="_blank" rel="noopener"' : '' %>>
+    <a class="row row-2" href="<%= link(r.url) %>"<%- isExternal(r.url) ? ' target="_blank" rel="noopener"' : '' %>>
       <p class="row-k"><%= r.meta %></p>
       <p class="row-m"><%- rich(r.title) %></p>
     </a>
@@ -221,7 +221,7 @@
   <h2 class="foot-mark"><%= c['footer.mark'] %><br><%= c['footer.mark2'] %></h2>
   <div class="foot-links">
     <% links.forEach(function (l) { %>
-    <a href="<%- safeHref(l.href) %>"<%- isExternal(l.href) ? ' target="_blank" rel="noopener"' : '' %>><%= l.label %></a>
+    <a href="<%= link(l.href) %>"<%- isExternal(l.href) ? ' target="_blank" rel="noopener"' : '' %>><%= l.label %></a>
     <% }); %>
   </div>
   <div class="foot-base">
@@ -231,8 +231,8 @@
   </div>
 </footer>
 
-<script src="/data/catalog.js"></script>
-<script src="/js/lantern.js"></script>
-<script src="/js/listening.js"></script>
+<script src="<%= u('/data/catalog.js') %>"></script>
+<script src="<%= u('/js/lantern.js') %>"></script>
+<script src="<%= u('/js/listening.js') %>"></script>
 </body>
 </html>

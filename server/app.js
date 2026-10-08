@@ -7,6 +7,7 @@ const { allContent, setContent, listRows, replaceRows, columnsOf, isTable, TABLE
 const { GROUPS, COLLECTIONS, FIELD_BY_KEY } = require('./schema');
 const { pageData } = require('./pagedata');
 const auth = require('./auth');
+const media = require('./uploads');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -51,6 +52,9 @@ app.use(auth.sessionMiddleware());
    ======================================================================= */
 app.use('/assets', express.static(path.join(__dirname, '..', 'public', 'assets'), {
   maxAge: PROD ? '30d' : 0, immutable: PROD,
+}));
+app.use('/assets/uploads', express.static(media.UPLOAD_DIR, {
+  maxAge: PROD ? '30d' : 0, index: false, dotfiles: 'deny',
 }));
 app.use('/css', express.static(path.join(__dirname, '..', 'public', 'css'), { maxAge: PROD ? '1d' : 0 }));
 app.use('/js', express.static(path.join(__dirname, '..', 'public', 'js'), { maxAge: PROD ? '1d' : 0 }));
@@ -165,6 +169,30 @@ api.put('/collection/:table', (req, res) => {
   }
   replaceRows(t, clean);
   res.json({ ok: true, rows: clean.length });
+});
+
+api.get('/media', (req, res) => res.json({ media: media.listMedia() }));
+
+api.post('/upload', (req, res) => {
+  media.upload.single('image')(req, res, async err => {
+    if (err) {
+      const msg = err.code === 'LIMIT_FILE_SIZE'
+        ? `That image is larger than ${Math.round(media.MAX_BYTES / 1024 / 1024)} MB.`
+        : err.message || 'Upload failed.';
+      return res.status(400).json({ error: msg });
+    }
+    if (!req.file) return res.status(400).json({ error: 'No image was sent.' });
+    try {
+      res.json({ ok: true, ...(await media.processImage(req.file.buffer, req.file.originalname)) });
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+});
+
+api.delete('/media/:name', (req, res) => {
+  try { media.deleteMedia(req.params.name); res.json({ ok: true }); }
+  catch (e) { res.status(400).json({ error: e.message }); }
 });
 
 api.post('/password', (req, res) => {
