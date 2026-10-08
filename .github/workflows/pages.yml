@@ -12,13 +12,11 @@ name: Deploy site to GitHub Pages
 
 on:
   push:
-    branches: [main]
-    paths:
-      - 'data/content.json'
-      - 'views/**'
-      - 'public/**'
-      - 'server/**'
-      - '.github/workflows/pages.yml'
+    branches:
+      - main
+      # Preview branches publish too, so the site can be reviewed before it is
+      # merged. Once this is on main, narrow this list to main alone.
+      - 'claude/**'
   workflow_dispatch:
 
 permissions:
