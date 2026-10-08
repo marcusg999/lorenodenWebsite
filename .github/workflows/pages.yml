@@ -48,6 +48,14 @@ jobs:
         # A project page is served from /<repo>, so the base path must match.
         run: node server/export-static.js --base "/${GITHUB_REPOSITORY#*/}"
 
+      # A plain artifact as well, so the built site can be downloaded and
+      # opened locally even before Pages is switched on for the repository.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: dist
+          retention-days: 14
+
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
@@ -60,5 +68,21 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      # Without this, a repository that has not enabled Pages fails here with
+      # an opaque "Get Pages site failed". Say what to do instead.
+      - name: Check that Pages is enabled
+        run: |
+          if [ -z "${{ secrets.GITHUB_TOKEN }}" ]; then exit 0; fi
+          code=$(curl -s -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pages")
+          if [ "$code" = "404" ]; then
+            echo "::error::GitHub Pages is not enabled for this repository."
+            echo "::error::Enable it once at Settings → Pages → Build and deployment → Source: \"GitHub Actions\", then re-run this workflow."
+            echo "::notice::The built site is still attached to this run as the \"site\" artifact — download it to preview locally."
+            exit 1
+          fi
+
       - id: deployment
         uses: actions/deploy-pages@v4
