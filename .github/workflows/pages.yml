@@ -5,9 +5,12 @@
 #   npm run content:export
 # and commit it.
 #
-# One-time setup: Settings → Pages → Build and deployment → Source:
-# "GitHub Actions". The site then appears at
-#   https://<owner>.github.io/<repo>/
+# The workflow tries to enable Pages by itself. If the repository or the
+# organisation does not allow that, the build still succeeds and attaches the
+# site as a downloadable artifact, and the deploy job is skipped with a
+# warning rather than failing — enable it once at
+#   Settings → Pages → Build and deployment → Source: "GitHub Actions"
+# and the next run publishes to https://<owner>.github.io/<repo>/
 name: Deploy site to GitHub Pages
 
 on:
@@ -31,6 +34,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      pages_ready: ${{ steps.pages_check.outputs.ready }}
     steps:
       - uses: actions/checkout@v4
 
@@ -48,41 +53,54 @@ jobs:
         # A project page is served from /<repo>, so the base path must match.
         run: node server/export-static.js --base "/${GITHUB_REPOSITORY#*/}"
 
-      # A plain artifact as well, so the built site can be downloaded and
-      # opened locally even before Pages is switched on for the repository.
+      # Always available, Pages or not: download this to preview locally.
       - uses: actions/upload-artifact@v4
         with:
           name: site
           path: dist
           retention-days: 14
 
+      # enablement turns Pages on when the token is allowed to. Never fail the
+      # build over it — the check below decides what happens next.
       - uses: actions/configure-pages@v5
+        id: configure
+        continue-on-error: true
+        with:
+          enablement: true
+
+      - name: Is Pages available?
+        id: pages_check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pages" || echo 000)
+          if [ "$code" = "200" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::GitHub Pages is enabled — publishing."
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::GitHub Pages is not enabled for this repository (API returned $code), so the deploy step is being skipped."
+            echo "::warning::Enable it once at Settings → Pages → Build and deployment → Source: \"GitHub Actions\", then re-run this workflow."
+            echo "::notice::The built site is attached to this run as the \"site\" artifact — download it to preview locally in the meantime."
+          fi
+
       - uses: actions/upload-pages-artifact@v3
+        if: steps.pages_check.outputs.ready == 'true'
         with:
           path: dist
 
   deploy:
     needs: build
+    # Skipped, not failed, when Pages has not been switched on. A missing
+    # repository setting is not a broken build.
+    if: needs.build.outputs.pages_ready == 'true'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      # Without this, a repository that has not enabled Pages fails here with
-      # an opaque "Get Pages site failed". Say what to do instead.
-      - name: Check that Pages is enabled
-        run: |
-          if [ -z "${{ secrets.GITHUB_TOKEN }}" ]; then exit 0; fi
-          code=$(curl -s -o /dev/null -w '%{http_code}' \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pages")
-          if [ "$code" = "404" ]; then
-            echo "::error::GitHub Pages is not enabled for this repository."
-            echo "::error::Enable it once at Settings → Pages → Build and deployment → Source: \"GitHub Actions\", then re-run this workflow."
-            echo "::notice::The built site is still attached to this run as the \"site\" artifact — download it to preview locally."
-            exit 1
-          fi
-
       - id: deployment
         uses: actions/deploy-pages@v4
