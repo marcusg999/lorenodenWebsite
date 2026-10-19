@@ -201,6 +201,19 @@ npm run content:import     # data/content.json → database
 So the loop is: edit in the portal → `npm run content:export` → commit → Pages republishes.
 Without a running portal you can also edit `data/content.json` by hand.
 
+### Hosting the static site on Netlify
+
+`netlify.toml` at the repo root is ready to use: build `npm run build`, publish `dist`.
+Netlify serves from the domain root, so it runs **without** the `--base` prefix the GitHub
+Pages workflow needs. Point Netlify at the repo and it reads the file itself.
+
+**The portal is not part of that build and cannot run on Netlify** — it needs a long-running
+Node process and a persistent writable disk for the database, the sessions table and
+uploaded images. Host it separately and point `DB_PATH` and `UPLOAD_DIR` at a disk.
+
+Editing content then goes: run the portal locally, `npm run content:export`, commit
+`data/content.json`, push — Netlify rebuilds. Or edit that file by hand.
+
 ### Building it yourself
 
 ```bash
