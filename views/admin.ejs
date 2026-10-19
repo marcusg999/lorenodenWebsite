@@ -13,6 +13,9 @@
 <header class="ad-top">
   <a class="ad-mark" href="/admin">Loren Oden · Portal</a>
   <span class="ad-who">Signed in as <%= username %></span>
+  <span class="pubdot" id="pubdot" data-state="<%= publish.configured ? publish.state : 'off' %>"
+        title="<%= publish.configured ? 'Edits publish to the live site when you save' : 'Publishing is not set up on this server' %>"></span>
+  <span class="ad-who" id="pubtext"><%= publish.configured ? 'Publishes on save' : 'Publishing off' %></span>
   <span class="spacer"></span>
   <div class="ad-act">
     <a class="sbtn" href="/" target="_blank" rel="noopener">View site ↗</a>
@@ -119,7 +122,7 @@
 </div>
 
 <script type="application/json" id="admin-data"><%-
-  JSON.stringify({ csrf: csrf, rows: rows, columns: columns, collections: collections })
+  JSON.stringify({ csrf: csrf, rows: rows, columns: columns, collections: collections, publish: publish })
       .replace(/</g, '\\u003c') %></script>
 <script src="/js/admin.js"></script>
 </body>

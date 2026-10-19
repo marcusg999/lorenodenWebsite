@@ -214,6 +214,37 @@ uploaded images. Host it separately and point `DB_PATH` and `UPLOAD_DIR` at a di
 Editing content then goes: run the portal locally, `npm run content:export`, commit
 `data/content.json`, push — Netlify rebuilds. Or edit that file by hand.
 
+### Publishing automatically
+
+With a hosted portal, set three more variables and **saving publishes**:
+
+```
+GITHUB_TOKEN   fine-grained token, Contents: read and write on this repo only
+GITHUB_REPO    owner/repo that Netlify builds from
+GITHUB_BRANCH  main
+```
+
+On save the portal commits `data/content.json`, plus any uploaded images the content
+still points at, as a **single commit** through GitHub's Git Data API. Netlify's ordinary
+git deploy takes it from there — usually live in a minute or two.
+
+Why commit rather than have the build read from the portal: the published site stays
+self-contained, so it does not matter whether the portal is awake when Netlify builds, and
+every edit leaves a commit you can read or revert.
+
+Details worth knowing:
+
+- **Nothing changed, nothing committed.** The published file carries no timestamp, so an
+  identical save is detected and skipped rather than producing an empty commit and a
+  pointless build.
+- **Only referenced uploads travel.** An image no longer pointed at by any content is left
+  behind rather than accumulating in the repo.
+- **Saving and publishing are separate steps.** Edits land in the portal's database first,
+  so a GitHub problem shows as "saved, but publishing failed" with a retry — never as a
+  lost edit.
+- The header shows the state at a glance; without the three variables it reads
+  *Publishing off* and the portal works exactly as before.
+
 ### Building it yourself
 
 ```bash

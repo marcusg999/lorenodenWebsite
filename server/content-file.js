@@ -19,7 +19,7 @@ function readFile(file = FILE) {
   const content = Object.create(null);
   for (const f of ALL_FIELDS) content[f.key] = f.def ?? '';
   Object.assign(content, data.content || {});
-  const out = { content, version: data.version || 1, exportedAt: data.exportedAt || null };
+  const out = { content, version: data.version || 1 };
   for (const t of TABLES) out[t] = Array.isArray(data[t]) ? data[t] : [];
   return out;
 }
@@ -27,7 +27,7 @@ function readFile(file = FILE) {
 /** Dump the live database to the content file. */
 function exportFromDb(file = FILE) {
   const { allContent, listRows } = require('./db');
-  const out = { version: 1, exportedAt: new Date().toISOString(), content: allContent() };
+  const out = { version: 1, content: allContent() };
   for (const t of TABLES) {
     out[t] = listRows(t).map(r => { const { id, position, ...rest } = r; return rest; });
   }

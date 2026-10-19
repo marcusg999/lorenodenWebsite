@@ -516,3 +516,112 @@ test('the reset email carries the link and escapes it', () => {
   assert.match(text, /token=abc/);
   assert.ok(!html.includes('<script>x</script>'), 'the url must be escaped into the html');
 });
+
+/* ---------------- publishing to the live site ---------------- */
+const publisher = require('./publish');
+
+test('publishing is off until it is configured', async () => {
+  const prev = { t: process.env.GITHUB_TOKEN, r: process.env.GITHUB_REPO };
+  delete process.env.GITHUB_TOKEN; delete process.env.GITHUB_REPO;
+  assert.equal(publisher.isConfigured(), false);
+
+  // A fresh session: the reset tests above deliberately sign out every other one.
+  const { cookie, csrf } = await signIn();
+  const r = await fetch(`${base}/api/publish`, {
+    method: 'POST', headers: { cookie, 'X-CSRF-Token': csrf, 'Content-Type': 'application/json' },
+    body: '{}',
+  });
+  assert.equal(r.status, 409, 'an unconfigured publish is refused, not silently ignored');
+  assert.match((await r.json()).error, /GITHUB_TOKEN/);
+
+  if (prev.t) process.env.GITHUB_TOKEN = prev.t;
+  if (prev.r) process.env.GITHUB_REPO = prev.r;
+});
+
+test('a malformed GITHUB_REPO is rejected', () => {
+  const prev = process.env.GITHUB_REPO;
+  process.env.GITHUB_TOKEN = 'tok';
+  for (const bad of ['norepo', 'a/b/c', '', 'owner /repo']) {
+    process.env.GITHUB_REPO = bad;
+    assert.equal(publisher.isConfigured(), false, `"${bad}" must not count as configured`);
+  }
+  process.env.GITHUB_REPO = 'owner/repo';
+  assert.equal(publisher.isConfigured(), true);
+  if (prev) process.env.GITHUB_REPO = prev; else delete process.env.GITHUB_REPO;
+});
+
+test('publishing requires a signed-in session and a CSRF token', async () => {
+  const anon = await fetch(`${base}/api/publish`, { method: 'POST' });
+  assert.equal(anon.status, 401, 'no session at all');
+
+  const live = await signIn();
+  const noCsrf = await fetch(`${base}/api/publish`, {
+    method: 'POST', headers: { cookie: live.cookie, 'Content-Type': 'application/json' }, body: '{}',
+  });
+  assert.equal(noCsrf.status, 403, 'signed in, but no CSRF token');
+});
+
+test('the blob hash matches what git itself would compute', () => {
+  // `printf 'hello\n' | git hash-object --stdin`
+  assert.equal(publisher._sha1(Buffer.from('hello\n')), 'ce013625030ba8dba906f756967f9e9ca394464a');
+  assert.equal(publisher._sha1(Buffer.alloc(0)), 'e69de29bb2d1d6434b8b29ae775ad8c2e48c5391');
+});
+
+test('the payload carries the content file and only referenced uploads', () => {
+  const fs2 = require('fs'), path2 = require('path'), os2 = require('os');
+  const dir = fs2.mkdtempSync(path2.join(os2.tmpdir(), 'lo-up-'));
+  const prev = process.env.UPLOAD_DIR;
+  process.env.UPLOAD_DIR = dir;
+  for (const n of ['used-aaaa1111', 'orphan-bbbb2222']) {
+    fs2.writeFileSync(path2.join(dir, n + '.webp'), 'webp');
+    fs2.writeFileSync(path2.join(dir, n + '.jpg'), 'jpg');
+  }
+  const { setContent } = require('./db');
+  setContent([['about.portrait.src', 'assets/uploads/used-aaaa1111']]);
+
+  const paths = publisher.collectFiles().map(f => f.path);
+  assert.ok(paths.includes('data/content.json'));
+  assert.ok(paths.includes('public/assets/uploads/used-aaaa1111.webp'), 'a referenced upload travels with the content');
+  assert.ok(paths.includes('public/assets/uploads/used-aaaa1111.jpg'));
+  assert.ok(!paths.some(p => p.includes('orphan')), 'an unreferenced upload is left behind');
+
+  setContent([['about.portrait.src', 'assets/img/portrait']]);
+  if (prev) process.env.UPLOAD_DIR = prev; else delete process.env.UPLOAD_DIR;
+  fs2.rmSync(dir, { recursive: true, force: true });
+});
+
+test('a path-traversing image reference cannot reach outside the upload folder', () => {
+  const fs2 = require('fs'), path2 = require('path'), os2 = require('os');
+  const dir = fs2.mkdtempSync(path2.join(os2.tmpdir(), 'lo-trav-'));
+  const prev = process.env.UPLOAD_DIR;
+  process.env.UPLOAD_DIR = dir;
+  const { setContent } = require('./db');
+  setContent([['about.portrait.src', 'assets/uploads/../../../../etc/passwd']]);
+  const paths = publisher.collectFiles().map(f => f.path);
+  assert.ok(!paths.some(p => p.includes('passwd') || p.includes('..')), 'nothing outside the folder is collected');
+  setContent([['about.portrait.src', 'assets/img/portrait']]);
+  if (prev) process.env.UPLOAD_DIR = prev; else delete process.env.UPLOAD_DIR;
+  fs2.rmSync(dir, { recursive: true, force: true });
+});
+
+test('the published content file carries no timestamp, so an unchanged save commits nothing', () => {
+  const a = publisher.collectFiles().find(f => f.path === 'data/content.json').text;
+  const b = publisher.collectFiles().find(f => f.path === 'data/content.json').text;
+  assert.equal(a, b, 'two exports of the same content must be byte-identical');
+  assert.ok(!/exportedAt/.test(a), 'a wall-clock stamp would make every save look like a change');
+
+  const { setContent } = require('./db');
+  setContent([['hero.eyebrow', 'A different line entirely.']]);
+  const c = publisher.collectFiles().find(f => f.path === 'data/content.json').text;
+  assert.notEqual(a, c, 'a real edit must change the file');
+  setContent([['hero.eyebrow', 'A voice rooted in soul.']]);
+});
+
+test('the content file round-trips without a timestamp field', () => {
+  const os2 = require('os'), fs2 = require('fs'), path2 = require('path');
+  const cf = require('./content-file');
+  const f = path2.join(fs2.mkdtempSync(path2.join(os2.tmpdir(), 'lo-ts-')), 'content.json');
+  cf.exportFromDb(f);
+  assert.ok(!fs2.readFileSync(f, 'utf8').includes('exportedAt'));
+  assert.ok(Object.keys(cf.readFile(f).content).length >= 70, 'it still reads back');
+});

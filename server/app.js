@@ -9,6 +9,7 @@ const { pageData } = require('./pagedata');
 const auth = require('./auth');
 const media = require('./uploads');
 const mailer = require('./mailer');
+const publisher = require('./publish');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -179,6 +180,7 @@ app.get('/admin', auth.requireAuth, (req, res) => {
     content: allContent(),
     rows: Object.fromEntries(TABLES.map(t => [t, listRows(t)])),
     columns: Object.fromEntries(TABLES.map(t => [t, columnsOf(t)])),
+    publish: publisher.status(),
   });
 });
 
@@ -253,6 +255,26 @@ api.post('/upload', (req, res) => {
 api.delete('/media/:name', (req, res) => {
   try { media.deleteMedia(req.params.name); res.json({ ok: true }); }
   catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+api.get('/publish/status', (req, res) => res.json(publisher.status()));
+
+api.post('/publish', async (req, res) => {
+  if (!publisher.isConfigured()) {
+    return res.status(409).json({
+      error: 'Publishing is not set up. Add GITHUB_TOKEN and GITHUB_REPO on the server.',
+      configured: false,
+    });
+  }
+  try {
+    const out = await publisher.publish({
+      message: `Content update from the portal (${req.session.username})`,
+      author: { name: 'Loren Oden portal', email: req.session.username },
+    });
+    res.json({ ok: true, ...out, status: publisher.status() });
+  } catch (e) {
+    res.status(502).json({ error: e.message, status: publisher.status() });
+  }
 });
 
 api.post('/password', (req, res) => {

@@ -201,3 +201,15 @@
 .medcell .rm{position:absolute;top:5px;right:5px;width:22px;height:22px;border:0;
   background:rgba(6,6,10,.8);color:var(--ash);cursor:pointer;font-size:12px;line-height:1;}
 .medcell .rm:hover{background:var(--magenta);color:#fff;}
+
+/* ---------- publish indicator ---------- */
+.pubdot{
+  width:8px;height:8px;border-radius:50%;flex:0 0 auto;display:inline-block;
+  background:#6F6B62;margin-left:2px;transition:background .3s var(--ease);
+}
+.pubdot[data-state="published"],.pubdot[data-state="idle"],.pubdot[data-state="unchanged"]{background:var(--citron);}
+.pubdot[data-state="running"]{background:var(--cyan);animation:pulse 1s ease-in-out infinite;}
+.pubdot[data-state="failed"]{background:var(--magenta);}
+.pubdot[data-state="off"]{background:#6F6B62;}
+@keyframes pulse{0%,100%{opacity:.35}50%{opacity:1}}
+.savebar .msg a{color:var(--citron);}
