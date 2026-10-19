@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Choose a new password · Loren Oden</title>
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/css/lantern.css">
+<link rel="stylesheet" href="/css/admin.css">
+</head>
+<body class="admin-body login-body">
+  <main class="login-card">
+    <p class="kicker" style="color:var(--citron)">Loren Oden</p>
+
+    <% if (done) { %>
+      <h1 class="login-h">Password changed</h1>
+      <div class="flash warn"><b>Done.</b> Any other browser that was signed in has been
+        signed out. Use the new password from here on.</div>
+      <a class="btn" href="/admin/login" style="width:100%;justify-content:center"><i></i>Sign in</a>
+
+    <% } else if (!valid) { %>
+      <h1 class="login-h">Link expired</h1>
+      <div class="flash err"><%= error || 'That reset link has expired or has already been used.' %></div>
+      <a class="btn" href="/admin/forgot" style="width:100%;justify-content:center"><i></i>Request a new link</a>
+
+    <% } else { %>
+      <h1 class="login-h">New password</h1>
+      <% if (error) { %><div class="flash err"><%= error %></div><% } %>
+      <p class="fhelp" style="margin:0 0 20px">At least twelve characters. Pick something
+        you don't use anywhere else.</p>
+      <form method="post" action="/admin/reset" autocomplete="on">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <input type="hidden" name="token" value="<%= token %>">
+        <label class="fl" for="password">New password</label>
+        <input class="fi" id="password" name="password" type="password" required autofocus
+               autocomplete="new-password" minlength="12">
+        <label class="fl" for="confirm">Repeat new password</label>
+        <input class="fi" id="confirm" name="confirm" type="password" required
+               autocomplete="new-password" minlength="12">
+        <button class="btn" type="submit" style="margin-top:22px;width:100%;justify-content:center"><i></i>Save new password</button>
+      </form>
+    <% } %>
+
+    <p class="login-foot"><a href="/admin/login">← Back to sign in</a></p>
+  </main>
+</body>
+</html>

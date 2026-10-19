@@ -24,6 +24,18 @@ db.exec(`
     created_at    TEXT NOT NULL DEFAULT (datetime('now')),
     last_login    TEXT
   );
+  /* Password-reset tokens. Only the hash is stored, so a leaked database
+     cannot be used to reset anyone's password. */
+  CREATE TABLE IF NOT EXISTS reset_tokens (
+    id           INTEGER PRIMARY KEY,
+    user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token_hash   TEXT NOT NULL UNIQUE,
+    expires_at   INTEGER NOT NULL,
+    used_at      TEXT,
+    created_at   TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_reset_user ON reset_tokens(user_id);
+  CREATE INDEX IF NOT EXISTS idx_reset_expires ON reset_tokens(expires_at);
   CREATE TABLE IF NOT EXISTS nav (
     id INTEGER PRIMARY KEY, position INTEGER NOT NULL DEFAULT 0,
     label TEXT NOT NULL DEFAULT '', href TEXT NOT NULL DEFAULT ''
@@ -69,6 +81,31 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires);
 `);
+
+/* ---- migrations ------------------------------------------------------
+   Sign-in moved from a username to an email address. Older databases are
+   brought forward in place rather than needing a rebuild. */
+const userCols = db.prepare('PRAGMA table_info(users)').all().map(c => c.name);
+if (!userCols.includes('email')) {
+  db.exec(`ALTER TABLE users ADD COLUMN email TEXT`);
+  // An account whose username was already an address keeps working.
+  db.prepare(`UPDATE users SET email = lower(username) WHERE username LIKE '%_@_%.__%'`).run();
+}
+db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email IS NOT NULL`);
+
+/* ---- sessions -------------------------------------------------------- */
+/** Drop every stored session for one user — used after a password reset so
+ *  any other signed-in browser is turned out. */
+function destroyUserSessions(userId) {
+  const rows = db.prepare('SELECT sid, data FROM sessions').all();
+  const del = db.prepare('DELETE FROM sessions WHERE sid = ?');
+  let n = 0;
+  for (const r of rows) {
+    try { if (JSON.parse(r.data).userId === userId) { del.run(r.sid); n++; } }
+    catch { /* unreadable row, leave it for the sweeper */ }
+  }
+  return n;
+}
 
 /* ---- content -------------------------------------------------------- */
 const qGetAll = db.prepare('SELECT key, value FROM content');
@@ -117,4 +154,4 @@ function count(table) {
   return db.prepare(`SELECT COUNT(*) n FROM ${table}`).get().n;
 }
 
-module.exports = { db, DB_PATH, allContent, setContent, listRows, replaceRows, columnsOf, count, isTable, TABLES };
+module.exports = { db, DB_PATH, destroyUserSessions, allContent, setContent, listRows, replaceRows, columnsOf, count, isTable, TABLES };

@@ -16,6 +16,7 @@ const { replaceRows } = require('./db');
 
 let server, base, SESSION;
 const PW = 'quiet-lantern-9471';
+const EMAIL = 'loren@example.com';
 
 before(async () => {
   replaceRows('nav', [{ label: 'Music', href: '/#room' }, { label: 'From the Road', href: '/gallery' }]);
@@ -25,20 +26,26 @@ before(async () => {
   ]);
   replaceRows('shows', [{ kind: 'past', date_label: 'May 2019', venue: 'Norwich Arts Centre', location: 'Norwich', note: '', url: 'https://example.com' }]);
   replaceRows('shots', [{ src: 'assets/img/norwich-1', alt: 'a', caption_bold: 'Norwich', caption: '2019', width: 1, height: 1, shape: 'a' }]);
-  createUser('tester', PW);
+  createUser(EMAIL, PW);
   await new Promise(r => { server = app.listen(0, r); });
   base = `http://127.0.0.1:${server.address().port}`;
   SESSION = await signIn();   // reused by the write tests below
 });
 after(() => { server.close(); fs.rmSync(tmp, { recursive: true, force: true }); });
 
+/** A fresh client IP per call: the app trusts one proxy hop, so this keys the
+ *  rate limiter separately and keeps tests independent of each other's order. */
+let ipSeq = 0;
+const nextIp = () => `10.9.${Math.floor(++ipSeq / 250) % 250}.${ipSeq % 250}`;
+
 /** Sign in and return { cookie, csrf }. */
-async function signIn(username = 'tester', password = PW) {
-  const page = await fetch(`${base}/admin/login`);
+async function signIn(username = EMAIL, password = PW, ip = nextIp()) {
+  const page = await fetch(`${base}/admin/login`, { headers: { 'X-Forwarded-For': ip } });
   let cookie = (page.headers.get('set-cookie') || '').split(';')[0];
   const csrf = (await page.text()).match(/name="_csrf" value="([^"]+)"/)[1];
   const res = await fetch(`${base}/admin/login`, {
-    method: 'POST', redirect: 'manual', headers: { cookie, 'Content-Type': 'application/x-www-form-urlencoded' },
+    method: 'POST', redirect: 'manual',
+    headers: { cookie, 'X-Forwarded-For': ip, 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ _csrf: csrf, username, password }),
   });
   const set = res.headers.get('set-cookie');
@@ -92,29 +99,33 @@ test('the API rejects anonymous writes', async () => {
 });
 
 test('a wrong password does not sign anyone in', async () => {
-  const { status } = await signIn('tester', 'definitely-wrong-password');
+  const { status } = await signIn(EMAIL, 'definitely-wrong-password');
   assert.equal(status, 401);
 });
 
 test('a correct password signs in and the session cookie is HttpOnly', async () => {
-  const page = await fetch(`${base}/admin/login`);
+  const ip = nextIp();
+  const page = await fetch(`${base}/admin/login`, { headers: { 'X-Forwarded-For': ip } });
   const cookie = (page.headers.get('set-cookie') || '').split(';')[0];
   const csrf = (await page.text()).match(/name="_csrf" value="([^"]+)"/)[1];
   const r = await fetch(`${base}/admin/login`, {
-    method: 'POST', redirect: 'manual', headers: { cookie, 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ _csrf: csrf, username: 'tester', password: PW }),
+    method: 'POST', redirect: 'manual',
+    headers: { cookie, 'X-Forwarded-For': ip, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ _csrf: csrf, username: EMAIL, password: PW }),
   });
   assert.equal(r.status, 302);
   assert.match(r.headers.get('set-cookie') || '', /HttpOnly/i);
 });
 
 test('the session id is regenerated on login (no session fixation)', async () => {
-  const page = await fetch(`${base}/admin/login`);
+  const ip = nextIp();
+  const page = await fetch(`${base}/admin/login`, { headers: { 'X-Forwarded-For': ip } });
   const pre = (page.headers.get('set-cookie') || '').split(';')[0];
   const csrf = (await page.text()).match(/name="_csrf" value="([^"]+)"/)[1];
   const r = await fetch(`${base}/admin/login`, {
-    method: 'POST', redirect: 'manual', headers: { cookie: pre, 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ _csrf: csrf, username: 'tester', password: PW }),
+    method: 'POST', redirect: 'manual',
+    headers: { cookie: pre, 'X-Forwarded-For': ip, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ _csrf: csrf, username: EMAIL, password: PW }),
   });
   const post = (r.headers.get('set-cookie') || '').split(';')[0];
   assert.notEqual(pre, post, 'the pre-login cookie must not survive sign-in');
@@ -230,14 +241,15 @@ test('changing a password needs the current one', async () => {
 /* ---------------- rate limiting ---------------- */
 test('repeated failed sign-ins are rate limited', async () => {
   let saw429 = false;
+  const ip = '10.200.0.1';                    // one bucket, used only here
   for (let i = 0; i < 14 && !saw429; i++) {
-    const page = await fetch(`${base}/admin/login`);
+    const page = await fetch(`${base}/admin/login`, { headers: { 'X-Forwarded-For': ip } });
     const cookie = (page.headers.get('set-cookie') || '').split(';')[0];
     const m = (await page.text()).match(/name="_csrf" value="([^"]+)"/);
     const r = await fetch(`${base}/admin/login`, {
       method: 'POST', redirect: 'manual',
-      headers: { cookie, 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ _csrf: m ? m[1] : '', username: 'tester', password: 'wrong-every-time' }),
+      headers: { cookie, 'X-Forwarded-For': ip, 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ _csrf: m ? m[1] : '', username: EMAIL, password: 'wrong-every-time' }),
     });
     if (r.status === 429) saw429 = true;
   }
@@ -346,4 +358,161 @@ test('the static build renders from JSON alone, with a base path and .html links
   assert.match(html, /href="\/lorenodenWebsite\/gallery\.html"/, 'routes become .html files');
   assert.ok(!/(href|src)="\/(css|js|assets|data)\//.test(html), 'no un-prefixed absolute asset URLs');
   assert.ok(!/href="\/gallery"/.test(html), 'no server-only routes remain');
+});
+
+/* ---------------- email as the sign-in identifier ---------------- */
+test('sign-in is by email, and the address is case-insensitive', async () => {
+  const ip = nextIp();
+  const page = await fetch(`${base}/admin/login`, { headers: { 'X-Forwarded-For': ip } });
+  const cookie = (page.headers.get('set-cookie') || '').split(';')[0];
+  const csrf = (await page.text()).match(/name="_csrf" value="([^"]+)"/)[1];
+  const r = await fetch(`${base}/admin/login`, {
+    method: 'POST', redirect: 'manual',
+    headers: { cookie, 'X-Forwarded-For': ip, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ _csrf: csrf, username: 'LoRen@Example.COM', password: PW }),
+  });
+  assert.equal(r.status, 302, 'a differently-cased address is the same account');
+});
+
+test('the old username no longer signs anyone in', async () => {
+  const { status } = await signIn('loren', PW);
+  assert.equal(status, 401);
+});
+
+test('the login page asks for an email and offers a reset link', async () => {
+  const html = await (await fetch(`${base}/admin/login`)).text();
+  assert.match(html, /type="email"/);
+  assert.match(html, /href="\/admin\/forgot"/);
+});
+
+/* ---------------- password reset ---------------- */
+const { createResetToken, findUser, consumeResetToken } = require('./auth');
+
+/** Walk the reset form the way a browser would. */
+async function postReset(token, password, confirm = password) {
+  const ip = nextIp();
+  // An invalid token renders the "link expired" page, which carries no form.
+  // Take the CSRF token from a page that does, on the same session — this is
+  // the real-world path: the form loaded while the token was still good.
+  const page = await fetch(`${base}/admin/forgot`, { headers: { 'X-Forwarded-For': ip } });
+  const cookie = (page.headers.get('set-cookie') || '').split(';')[0];
+  const csrf = (await page.text()).match(/name="_csrf" value="([^"]+)"/)?.[1] || '';
+  return fetch(`${base}/admin/reset`, {
+    method: 'POST', redirect: 'manual',
+    headers: { cookie, 'X-Forwarded-For': ip, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ _csrf: csrf, token, password, confirm }),
+  });
+}
+
+test('forgot-password answers identically for a known and an unknown address', async () => {
+  const ask = async email => {
+    const ip = nextIp();
+    const page = await fetch(`${base}/admin/forgot`, { headers: { 'X-Forwarded-For': ip } });
+    const cookie = (page.headers.get('set-cookie') || '').split(';')[0];
+    const csrf = (await page.text()).match(/name="_csrf" value="([^"]+)"/)[1];
+    const r = await fetch(`${base}/admin/forgot`, {
+      method: 'POST',
+      headers: { cookie, 'X-Forwarded-For': ip, 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ _csrf: csrf, email }),
+    });
+    return { status: r.status, body: await r.text() };
+  };
+  const known = await ask(EMAIL);
+  const unknown = await ask('nobody-here@example.com');
+  assert.equal(known.status, 200);
+  assert.equal(unknown.status, 200);
+  assert.equal(known.body, unknown.body, 'the two responses must be byte-identical');
+  assert.match(known.body, /Check your inbox/);
+});
+
+test('a reset token sets a new password and is then spent', async () => {
+  const NEW = 'a-brand-new-lantern-42';
+  const token = createResetToken(findUser(EMAIL).id);
+
+  const ok = await postReset(token, NEW);
+  assert.equal(ok.status, 200);
+  assert.match(await ok.text(), /Password changed/);
+
+  const after = await signIn(EMAIL, NEW);
+  assert.equal(after.status, 302, 'the new password works');
+
+  const reuse = await postReset(token, 'yet-another-lantern-9');
+  assert.equal(reuse.status, 400);
+  assert.match(await reuse.text(), /expired or has already been used/);
+
+  // put it back for the tests that follow
+  require('./auth').setPassword(EMAIL, PW);
+});
+
+test('an expired token is refused', async () => {
+  const { db } = require('./db');
+  const token = createResetToken(findUser(EMAIL).id);
+  db.prepare('UPDATE reset_tokens SET expires_at = ? WHERE user_id = ?')
+    .run(Date.now() - 1000, findUser(EMAIL).id);
+  assert.equal(consumeResetToken(token), null);
+  const r = await postReset(token, 'should-not-be-set-111');
+  assert.equal(r.status, 400);
+  assert.equal(require('./auth').verify(EMAIL, 'should-not-be-set-111'), null);
+});
+
+test('a forged token is refused', async () => {
+  const r = await postReset('not-a-real-token-at-all', 'should-not-be-set-222');
+  assert.equal(r.status, 400);
+  assert.equal(require('./auth').verify(EMAIL, 'should-not-be-set-222'), null);
+});
+
+test('the raw token is never stored — only its hash', async () => {
+  const { db } = require('./db');
+  const token = createResetToken(findUser(EMAIL).id);
+  const rows = db.prepare('SELECT token_hash FROM reset_tokens').all();
+  assert.ok(rows.length > 0);
+  assert.ok(!rows.some(r => r.token_hash === token), 'the plain token must not be in the table');
+  assert.ok(rows.every(r => /^[0-9a-f]{64}$/.test(r.token_hash)), 'stored values are sha-256 hashes');
+});
+
+test('mismatched or weak passwords are refused by the reset form', async () => {
+  const token = createResetToken(findUser(EMAIL).id);
+  const mismatch = await postReset(token, 'one-good-password-1', 'a-different-one-22');
+  assert.equal(mismatch.status, 400);
+  assert.match(await mismatch.text(), /do not match/);
+
+  const weak = await postReset(token, 'short', 'short');
+  assert.equal(weak.status, 400);
+  assert.match(await weak.text(), /at least 12 characters/);
+});
+
+test('resetting a password signs out every other browser', async () => {
+  const other = await signIn();                       // a second signed-in session
+  assert.equal((await fetch(`${base}/admin`, { headers: { cookie: other.cookie }, redirect: 'manual' })).status, 200);
+
+  const NEW = 'turned-out-lantern-77';
+  const token = createResetToken(findUser(EMAIL).id);
+  assert.equal((await postReset(token, NEW)).status, 200);
+
+  const stillIn = await fetch(`${base}/admin`, { headers: { cookie: other.cookie }, redirect: 'manual' });
+  assert.equal(stillIn.status, 302, 'the other session must be turned out');
+
+  require('./auth').setPassword(EMAIL, PW);
+});
+
+test('the reset link is built from APP_URL, not the Host header', async () => {
+  const mailer = require('./mailer');
+  const prevUrl = process.env.APP_URL, prevEnv = process.env.NODE_ENV;
+  process.env.APP_URL = 'https://lorenoden.com';
+  assert.equal(mailer.appUrl({ protocol: 'http', get: () => 'attacker.example' }), 'https://lorenoden.com');
+
+  delete process.env.APP_URL;
+  process.env.NODE_ENV = 'production';
+  assert.throws(() => mailer.appUrl({ protocol: 'http', get: () => 'attacker.example' }), /APP_URL must be set/);
+
+  if (prevUrl) process.env.APP_URL = prevUrl; else delete process.env.APP_URL;
+  if (prevEnv) process.env.NODE_ENV = prevEnv; else delete process.env.NODE_ENV;
+});
+
+test('the reset email carries the link and escapes it', () => {
+  const { subject, text, html } = require('./mailer')
+    .resetEmail('https://lorenoden.com/admin/reset?token=abc"><script>x</script>', 30);
+  assert.match(subject, /Reset your/);
+  assert.match(text, /token=abc/);
+  assert.ok(!html.includes('<script>x</script>'), 'the url must be escaped into the html');
 });

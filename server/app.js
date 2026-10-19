@@ -8,6 +8,7 @@ const { GROUPS, COLLECTIONS, FIELD_BY_KEY } = require('./schema');
 const { pageData } = require('./pagedata');
 const auth = require('./auth');
 const media = require('./uploads');
+const mailer = require('./mailer');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -104,6 +105,65 @@ app.post('/admin/login', auth.loginLimiter, auth.checkCsrf, (req, res) => {
     req.session.username = user.username;
     res.redirect('/admin');
   });
+});
+
+/* ---- forgotten password ---------------------------------------------
+   The response is identical whether or not an account exists, so this page
+   cannot be used to discover which addresses are registered. */
+app.get('/admin/forgot', (req, res) => {
+  if (req.session.userId) return res.redirect('/admin');
+  res.render('admin-forgot', { csrf: auth.csrfToken(req), sent: false, error: null });
+});
+
+app.post('/admin/forgot', auth.forgotLimiter, auth.checkCsrf, async (req, res) => {
+  const email = auth.normaliseEmail((req.body || {}).email);
+  const done = () => res.render('admin-forgot', { csrf: auth.csrfToken(req), sent: true, error: null });
+
+  const user = email ? auth.findUser(email) : null;
+  if (!user) return done();                       // same answer either way
+
+  try {
+    const token = auth.createResetToken(user.id);
+    const url = `${mailer.appUrl(req)}/admin/reset?token=${encodeURIComponent(token)}`;
+    await mailer.sendResetEmail(user.email, url, Math.round(auth.RESET_TTL_MS / 60000));
+  } catch (e) {
+    console.error('[forgot] could not send reset email:', e.message);
+    return res.status(500).render('admin-forgot', {
+      csrf: auth.csrfToken(req), sent: false,
+      error: 'The reset email could not be sent. Check the mail settings on the server.',
+    });
+  }
+  done();
+});
+
+app.get('/admin/reset', (req, res) => {
+  const token = String(req.query.token || '');
+  const user = auth.consumeResetToken(token, { peek: true });
+  res.render('admin-reset', {
+    csrf: auth.csrfToken(req), token,
+    valid: Boolean(user), error: null, done: false,
+  });
+});
+
+app.post('/admin/reset', auth.resetLimiter, auth.checkCsrf, (req, res) => {
+  const { token = '', password = '', confirm = '' } = req.body || {};
+  const fail = (msg, valid = true) => res.status(400).render('admin-reset', {
+    csrf: auth.csrfToken(req), token, valid, error: msg, done: false,
+  });
+
+  if (!auth.consumeResetToken(token, { peek: true })) {
+    return fail('That reset link has expired or has already been used. Request a new one.', false);
+  }
+  if (password !== confirm) return fail('The two passwords do not match.');
+  try { auth.assertPasswordStrength(password); } catch (e) { return fail(e.message); }
+
+  const user = auth.consumeResetToken(token);     // single use, spent here
+  if (!user) return fail('That reset link has expired or has already been used. Request a new one.', false);
+
+  auth.setPasswordById(user.id, password);        // also turns out other sessions
+  req.session.destroy(() => res.render('admin-reset', {
+    csrf: '', token: '', valid: true, error: null, done: true,
+  }));
 });
 
 app.post('/admin/logout', auth.requireAuth, auth.checkCsrf, (req, res) => {
