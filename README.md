@@ -135,6 +135,40 @@ limiter engages.
 
 ## Deploying
 
+The site is two halves that can live in different places:
+
+| | Where | Needs |
+|---|---|---|
+| Public site | Netlify or GitHub Pages — static | nothing |
+| Admin portal | a Node host with a persistent disk | the disk, and env vars below |
+
+They are linked by the repository: the portal commits content to it, and the
+public site rebuilds from that commit.
+
+### The portal on Render
+
+`render.yaml` is a Blueprint, so most of this is filled in for you:
+
+1. Render → **New → Blueprint** → pick this repository. It reads the file and
+   proposes the service, a 1 GB disk at `/var/data`, and the variables.
+2. Fill in the ones it asks for: `APP_URL` (this service's own URL), the four
+   `SMTP_*` values if you want password reset, and `GITHUB_TOKEN` /
+   `GITHUB_REPO` if you want saving to publish. All optional except `APP_URL`.
+3. Apply, wait for the first build.
+4. From the service's **Shell**, once:
+   ```bash
+   npm run set-password -- loren@example.com '<a long password>'
+   ```
+5. Sign in at `<APP_URL>/admin/login`.
+
+**The disk is the step that matters.** `DB_PATH` and `UPLOAD_DIR` point at it;
+without it the database and every uploaded image are wiped on each deploy.
+Render's free instance type cannot mount a disk, which is why the blueprint
+asks for the smallest paid one.
+
+Railway, Fly.io and a plain VPS work the same way — run `npm ci` then
+`npm start`, mount a disk, set the same variables.
+
 Any host that runs Node 20+ and gives you a persistent disk. On Render, Railway or Fly:
 
 1. Build command `npm install`, start command `npm start`.
