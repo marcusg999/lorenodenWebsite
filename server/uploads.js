@@ -1,22 +1,13 @@
 'use strict';
-const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const multer = require('multer');
 const sharp = require('sharp');
-
-const ROOT = path.join(__dirname, '..');
-/* Uploads live under public/assets/uploads by default. Point UPLOAD_DIR at a
-   persistent disk in production, or they vanish on the next deploy. */
-const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(ROOT, 'public', 'assets', 'uploads');
-/** Web path the templates reference, minus the extension. */
-const WEB_PREFIX = 'assets/uploads';
+const { storage, WEB_PREFIX } = require('./storage');
 
 const MAX_BYTES = 12 * 1024 * 1024;     // 12 MB in, before re-encoding
 const MAX_EDGE = 2200;                  // longest edge kept
 const ACCEPT = new Set(['jpeg', 'png', 'webp', 'gif', 'tiff', 'avif']);
-
-fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 /* Held in memory, never written until it has been decoded and re-encoded —
    nothing the browser sent ever lands on disk in its original form. */
@@ -41,8 +32,8 @@ function makeName(original) {
 }
 
 /**
- * Decode, strip metadata, resize and write a .webp + .jpg pair.
- * Returns { src, width, height } where src is the extension-less web path.
+ * Decode, strip metadata, resize and store a .webp + .jpg pair.
+ * Returns { src, width, height } where src is the extension-less path or URL.
  */
 async function processImage(buffer, originalName) {
   let meta;
@@ -69,38 +60,22 @@ async function processImage(buffer, originalName) {
     base.clone().jpeg({ quality: 82, mozjpeg: true }).toBuffer(),
   ]);
 
-  await fs.promises.writeFile(path.join(UPLOAD_DIR, name + '.webp'), webp.data);
-  await fs.promises.writeFile(path.join(UPLOAD_DIR, name + '.jpg'), jpg);
-
-  return { src: `${WEB_PREFIX}/${name}`, width: webp.info.width, height: webp.info.height };
+  const src = await storage().put(name, { webp: webp.data, jpg });
+  return { src, width: webp.info.width, height: webp.info.height };
 }
 
-/** Everything in the upload folder, newest first. */
-function listMedia() {
-  const seen = new Map();
-  for (const f of fs.readdirSync(UPLOAD_DIR)) {
-    const m = /^(.+)\.(webp|jpg)$/i.exec(f);
-    if (!m) continue;
-    const stem = m[1];
-    if (seen.has(stem)) continue;
-    const stat = fs.statSync(path.join(UPLOAD_DIR, f));
-    seen.set(stem, { src: `${WEB_PREFIX}/${stem}`, name: stem, mtime: stat.mtimeMs });
-  }
-  return [...seen.values()].sort((a, b) => b.mtime - a.mtime);
-}
+/** Everything in the image library, newest first. */
+function listMedia() { return storage().list(); }
 
-/** Delete an upload. Only ever touches files inside UPLOAD_DIR. */
+/** Delete an upload. Only ever touches images this app stored. */
 function deleteMedia(name) {
   const stem = path.basename(String(name || ''));
   if (!stem || stem !== name || /[/\\]/.test(stem)) throw new Error('Bad file name.');
-  let gone = 0;
-  for (const ext of ['.webp', '.jpg']) {
-    const p = path.resolve(UPLOAD_DIR, stem + ext);
-    if (!p.startsWith(path.resolve(UPLOAD_DIR) + path.sep)) throw new Error('Bad file name.');
-    if (fs.existsSync(p)) { fs.unlinkSync(p); gone++; }
-  }
-  if (!gone) throw new Error('No such image.');
-  return gone;
+  return storage().remove(stem);
 }
+
+/** Where local uploads live. Only meaningful with STORAGE=local. */
+const UPLOAD_DIR = process.env.UPLOAD_DIR ||
+  path.join(__dirname, '..', 'public', 'assets', 'uploads');
 
 module.exports = { upload, processImage, listMedia, deleteMedia, UPLOAD_DIR, WEB_PREFIX, MAX_BYTES };

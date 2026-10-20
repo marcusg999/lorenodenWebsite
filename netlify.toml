@@ -4,10 +4,12 @@
 # database is involved. Netlify serves from the domain root, so the build runs
 # WITHOUT the --base prefix that the GitHub Pages workflow uses.
 #
-# The /admin portal is NOT part of this build and cannot run on Netlify: it
-# needs a long-running Node process and a persistent writable disk for the
-# SQLite database, the sessions table and uploaded images. Host it separately
-# (Render, Railway, Fly.io, a VPS) and point DB_PATH and UPLOAD_DIR at a disk.
+# The /admin portal runs alongside it as a Netlify Function, backed by
+# Supabase: Postgres for the content, sessions and rate limits, and Supabase
+# Storage for uploaded images. Nothing is kept on the instance, which is what
+# makes a portal possible on a platform with no disk and no long-running
+# process. Set the keys from .env.example in Site settings → Environment
+# variables; without DB_DRIVER=postgres the function will not start.
 
 [build]
   command = "npm run build"
@@ -16,11 +18,54 @@
 [build.environment]
   NODE_VERSION = "22"
 
+[functions]
+  node_bundler = "esbuild"
+  # Native modules: shipped from node_modules rather than bundled. sharp does
+  # the image re-encoding; better-sqlite3 is never loaded when DB_DRIVER is
+  # postgres, but it is reachable from the driver selector.
+  external_node_modules = ["sharp", "better-sqlite3"]
+  included_files = ["views/**", "public/css/**", "public/js/**"]
+
 # The built pages link to gallery.html; this makes a typed /gallery work too.
 [[redirects]]
   from = "/gallery"
   to = "/gallery.html"
   status = 200
+
+# --- the portal ----------------------------------------------------------
+# force = true because dist/ has no /admin, but also none of these would be
+# found there and a 404 page is not what the owner should get.
+[[redirects]]
+  from = "/admin"
+  to = "/.netlify/functions/portal/admin"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/admin/*"
+  to = "/.netlify/functions/portal/admin/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/portal/api/:splat"
+  status = 200
+  force = true
+
+# The portal's own stylesheet and script are kept out of the public build,
+# so the function serves them.
+[[redirects]]
+  from = "/css/admin.css"
+  to = "/.netlify/functions/portal/css/admin.css"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/js/admin.js"
+  to = "/.netlify/functions/portal/js/admin.js"
+  status = 200
+  force = true
 
 # Fonts and the hero frame sequence are content-stable, so cache them hard.
 [[headers]]
@@ -43,3 +88,10 @@
   [headers.values]
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
+
+# The portal is never cached and never indexed.
+[[headers]]
+  for = "/admin/*"
+  [headers.values]
+    Cache-Control = "no-store"
+    X-Robots-Tag = "noindex, nofollow"

@@ -63,16 +63,16 @@ async function gh(method, url, body) {
 }
 
 /** The content file, plus every uploaded image the content still refers to. */
-function collectFiles() {
+async function collectFiles() {
   const { allContent, listRows } = require('./db');
   const cf = require('./content-file');
 
-  const content = allContent();
+  const content = await allContent();
   // No timestamp: it would differ on every call, so nothing would ever look
   // unchanged and each save would commit. The commit itself records the time.
   const doc = { version: 1, content };
   for (const t of cf.TABLES) {
-    doc[t] = listRows(t).map(r => { const { id, position, ...rest } = r; return rest; });
+    doc[t] = (await listRows(t)).map(r => { const { id, position, ...rest } = r; return rest; });
   }
   const files = [{
     path: 'data/content.json',
@@ -80,7 +80,9 @@ function collectFiles() {
   }];
 
   // Images uploaded through the portal live on its disk, not in the repo, so
-  // they have to travel with the content that points at them.
+  // they have to travel with the content that points at them. With Supabase
+  // Storage the src is an absolute URL instead, already public — those match
+  // neither test below and are correctly left out of the commit.
   const refs = new Set();
   for (const v of Object.values(content)) {
     if (typeof v === 'string' && v.startsWith('assets/uploads/')) refs.add(v);
@@ -112,7 +114,7 @@ async function publish({ message, author } = {}) {
   last = { state: 'running', at: new Date().toISOString(), message: null, url: null };
 
   try {
-    const files = collectFiles();
+    const files = await collectFiles();
 
     const ref = await gh('GET', `/git/ref/heads/${encodeURIComponent(c.branch)}`);
     const headSha = ref.object.sha;

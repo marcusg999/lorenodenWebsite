@@ -25,11 +25,11 @@ function readFile(file = FILE) {
 }
 
 /** Dump the live database to the content file. */
-function exportFromDb(file = FILE) {
+async function exportFromDb(file = FILE) {
   const { allContent, listRows } = require('./db');
-  const out = { version: 1, content: allContent() };
+  const out = { version: 1, content: await allContent() };
   for (const t of TABLES) {
-    out[t] = listRows(t).map(r => { const { id, position, ...rest } = r; return rest; });
+    out[t] = (await listRows(t)).map(r => { const { id, position, ...rest } = r; return rest; });
   }
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, JSON.stringify(out, null, 2) + '\n');
@@ -37,11 +37,11 @@ function exportFromDb(file = FILE) {
 }
 
 /** Load the content file into the database, replacing what is there. */
-function importToDb(file = FILE) {
+async function importToDb(file = FILE) {
   const { setContent, replaceRows } = require('./db');
   const data = readFile(file);
-  setContent(Object.entries(data.content));
-  for (const t of TABLES) if (data[t].length) replaceRows(t, data[t]);
+  await setContent(Object.entries(data.content));
+  for (const t of TABLES) if (data[t].length) await replaceRows(t, data[t]);
   return data;
 }
 
