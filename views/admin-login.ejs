@@ -16,21 +16,25 @@
     <% if (noUsers) { %>
       <div class="flash warn">
         <b>No account exists yet.</b> On the server, run<br>
-        <code>npm run set-password -- &lt;username&gt; '&lt;password&gt;'</code>
+        <code>npm run set-password -- &lt;email&gt; '&lt;password&gt;'</code>
       </div>
     <% } %>
     <% if (error) { %><div class="flash err"><%= error %></div><% } %>
     <form method="post" action="/admin/login" autocomplete="on">
       <input type="hidden" name="_csrf" value="<%= csrf %>">
-      <label class="fl" for="username">Username</label>
-      <input class="fi" id="username" name="username" type="text" required autofocus
-             autocapitalize="none" autocomplete="username" spellcheck="false">
+      <label class="fl" for="username">Email address</label>
+      <input class="fi" id="username" name="username" type="email" required autofocus
+             autocapitalize="none" autocomplete="username" spellcheck="false"
+             inputmode="email" placeholder="you@example.com">
       <label class="fl" for="password">Password</label>
       <input class="fi" id="password" name="password" type="password" required
              autocomplete="current-password">
       <button class="btn" type="submit" style="margin-top:22px;width:100%;justify-content:center"><i></i>Sign in</button>
     </form>
-    <p class="login-foot"><a href="/">← Back to the site</a></p>
+    <p class="login-foot" style="display:flex;justify-content:space-between;gap:14px">
+      <a href="/">← Back to the site</a>
+      <a href="/admin/forgot">Forgot password?</a>
+    </p>
   </main>
 </body>
 </html>

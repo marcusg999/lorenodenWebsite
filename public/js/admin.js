@@ -318,6 +318,44 @@
     });
   }
 
+  /* ---------- publishing to the live site ---------- */
+  var dot = $('#pubdot'), pubtext = $('#pubtext');
+  function showPublish(st) {
+    if (!dot) return;
+    dot.dataset.state = st.configured ? st.state : 'off';
+    if (!st.configured) { pubtext.textContent = 'Publishing off'; return; }
+    pubtext.textContent = {
+      running: 'Publishing…', published: 'Published', unchanged: 'Up to date',
+      failed: 'Publish failed', idle: 'Publishes on save',
+    }[st.state] || 'Publishes on save';
+    if (st.message) dot.title = st.message;
+  }
+  showPublish(A.publish || { configured: false });
+
+  /** Push the saved content to the repository so the live site rebuilds. */
+  function publish() {
+    if (!A.publish || !A.publish.configured) return Promise.resolve(null);
+    showPublish({ configured: true, state: 'running' });
+    return send('POST', '/api/publish', {})
+      .then(function (r) {
+        showPublish(r.status || { configured: true, state: 'published' });
+        if (r.unchanged) { msg.innerHTML = '<b>Saved.</b> The live site was already up to date.'; return r; }
+        msg.innerHTML = '<b>Saved and published.</b> The live site rebuilds in a minute or two.' +
+          (r.url ? ' <a href="' + r.url + '" target="_blank" rel="noopener">See the change ↗</a>' : '');
+        bar.classList.add('on');
+        return r;
+      })
+      .catch(function (e) {
+        showPublish({ configured: true, state: 'failed', message: e.message });
+        msg.innerHTML = '<b style="color:var(--magenta)">Saved, but publishing failed.</b> ' +
+          esc(e.message) + ' <button class="sbtn" type="button" id="retrypub">Retry</button>';
+        bar.classList.add('on');
+        var rp = document.getElementById('retrypub');
+        if (rp) rp.addEventListener('click', function () { msg.textContent = 'Publishing…'; publish(); });
+        throw e;
+      });
+  }
+
   $('#save').addEventListener('click', function () {
     var jobs = [], btn = this;
     if (Object.keys(dirtyContent).length) jobs.push(send('PUT', '/api/content', dirtyContent));
@@ -331,6 +369,9 @@
       original = JSON.parse(JSON.stringify(state));
       bar.classList.remove('on');
       toast('Saved. The site is updated.');
+      // The edits are safe in the portal now; publishing is the second step,
+      // so a publishing problem never looks like a lost save.
+      return publish().catch(function () { /* already surfaced in the save bar */ });
     }).catch(function (e) {
       msg.innerHTML = '<b style="color:var(--magenta)">' + e.message + '</b>';
       toast(e.message, true);

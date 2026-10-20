@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Reset your password · Loren Oden</title>
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/css/lantern.css">
+<link rel="stylesheet" href="/css/admin.css">
+</head>
+<body class="admin-body login-body">
+  <main class="login-card">
+    <p class="kicker" style="color:var(--citron)">Loren Oden</p>
+    <h1 class="login-h">Reset password</h1>
+
+    <% if (sent) { %>
+      <div class="flash warn">
+        <b>Check your inbox.</b> If that address has an account, a reset link is on its way.
+        It works once and expires in 30 minutes.
+      </div>
+      <p class="fhelp">Nothing arrived? Look in spam, then try again &mdash; or set a new
+        password on the server with <code>npm run set-password</code>.</p>
+    <% } else { %>
+      <% if (error) { %><div class="flash err"><%= error %></div><% } %>
+      <p class="fhelp" style="margin:0 0 20px">Enter the address you sign in with and we'll
+        send you a link to choose a new password.</p>
+      <form method="post" action="/admin/forgot" autocomplete="on">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <label class="fl" for="email">Email address</label>
+        <input class="fi" id="email" name="email" type="email" required autofocus
+               autocapitalize="none" autocomplete="username" spellcheck="false"
+               inputmode="email" placeholder="you@example.com">
+        <button class="btn" type="submit" style="margin-top:22px;width:100%;justify-content:center"><i></i>Send reset link</button>
+      </form>
+    <% } %>
+
+    <p class="login-foot"><a href="/admin/login">← Back to sign in</a></p>
+  </main>
+</body>
+</html>

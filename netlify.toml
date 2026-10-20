@@ -1,0 +1,45 @@
+# Netlify deployment for the public site.
+#
+# This builds the static copy only — data/content.json is committed, so no
+# database is involved. Netlify serves from the domain root, so the build runs
+# WITHOUT the --base prefix that the GitHub Pages workflow uses.
+#
+# The /admin portal is NOT part of this build and cannot run on Netlify: it
+# needs a long-running Node process and a persistent writable disk for the
+# SQLite database, the sessions table and uploaded images. Host it separately
+# (Render, Railway, Fly.io, a VPS) and point DB_PATH and UPLOAD_DIR at a disk.
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# The built pages link to gallery.html; this makes a typed /gallery work too.
+[[redirects]]
+  from = "/gallery"
+  to = "/gallery.html"
+  status = 200
+
+# Fonts and the hero frame sequence are content-stable, so cache them hard.
+[[headers]]
+  for = "/assets/fonts/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/assets/frames/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/assets/img/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"

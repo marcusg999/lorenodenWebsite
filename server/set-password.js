@@ -5,12 +5,13 @@
    With no arguments it reads ADMIN_USER / ADMIN_PASSWORD from the environment. */
 const { createUser, setPassword, findUser, userCount } = require('./auth');
 
-const [username = process.env.ADMIN_USER, password = process.env.ADMIN_PASSWORD] = process.argv.slice(2);
+const [email = process.env.ADMIN_EMAIL || process.env.ADMIN_USER,
+       password = process.env.ADMIN_PASSWORD] = process.argv.slice(2);
 
-if (!username || !password) {
+if (!email || !password) {
   console.error(`
-Usage:  npm run set-password -- <username> <password>
-   or:  ADMIN_USER=loren ADMIN_PASSWORD='…' npm run set-password
+Usage:  npm run set-password -- <email> <password>
+   or:  ADMIN_EMAIL=loren@example.com ADMIN_PASSWORD='…' npm run set-password
 
 The password must be at least 12 characters.
 Generate a strong one with:  openssl rand -base64 18
@@ -19,12 +20,12 @@ Generate a strong one with:  openssl rand -base64 18
 }
 
 try {
-  if (findUser(username)) {
-    setPassword(username, password);
-    console.log(`✓ Password updated for "${username}".`);
+  if (findUser(email)) {
+    setPassword(email, password);
+    console.log(`✓ Password updated for ${email}.`);
   } else {
-    createUser(username, password);
-    console.log(`✓ Created portal account "${username}".`);
+    createUser(email, password);
+    console.log(`✓ Created portal account ${email}.`);
   }
   console.log(`  ${userCount()} account(s) exist. Sign in at /admin/login`);
 } catch (e) {

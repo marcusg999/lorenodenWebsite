@@ -14,7 +14,7 @@ It runs two ways:
 ```bash
 npm install
 npm run seed                                   # load the sourced content
-npm run set-password -- loren '<a long password>'
+npm run set-password -- loren@example.com '<a long password>'
 npm start                                      # http://localhost:3000
 ```
 
@@ -64,6 +64,30 @@ Everything the owner can change, grouped the way the site reads:
   `.webp` + `.jpg` pair, so the page's `<picture>` markup keeps working unchanged.
 - **Account** — change the portal password.
 
+### Signing in
+
+The portal signs in with an **email address** and a password. There is no public
+sign-up: accounts are created on the server.
+
+```bash
+npm run set-password -- loren@example.com '<a long password>'   # creates, or changes the password
+```
+
+**Forgotten password** is self-service. `/admin/forgot` takes the address, emails a
+single-use link that expires in 30 minutes, and `/admin/reset` sets the new one. Resetting
+also signs out every other browser that was logged in.
+
+A few details that matter:
+
+- The forgot page answers **identically** whether or not an account exists, so it cannot be
+  used to find out which addresses are registered.
+- Only a **SHA-256 hash** of each reset token is stored, so a leaked database cannot be used
+  to reset anyone's password. One live token per account; issuing a new one voids the old.
+- Reset links are built from `APP_URL`, never the `Host` header — otherwise an attacker who
+  can set that header could make the link point at their own server. In production the app
+  refuses to start a reset without `APP_URL`.
+- Requests are rate limited: five reset emails per IP per hour.
+
 Edits appear on the site immediately; there is no rebuild or redeploy.
 
 ### Two conveniences worth knowing
@@ -84,7 +108,10 @@ admin form is generated from that file, so there is no second place to update.
 
 | | |
 |---|---|
+| Sign-in | Email address and password. No public sign-up; accounts are made on the server. |
 | Passwords | bcrypt, cost 12. Minimum twelve characters; obvious ones refused. |
+| Reset tokens | 32 random bytes, stored only as a SHA-256 hash, single use, 30-minute expiry, one live token per account. Resetting signs out every other session. |
+| Reset links | Built from `APP_URL`, never the `Host` header. No account enumeration: the forgot page answers the same either way. Five requests per IP per hour. |
 | Sessions | Server-side in SQLite, `HttpOnly`, `SameSite=Lax`, `Secure` in production, 12-hour rolling expiry. Session id is regenerated on sign-in. |
 | CSRF | Per-session synchroniser token required on every write. |
 | Brute force | Ten sign-in attempts per IP per fifteen minutes. |
@@ -94,9 +121,11 @@ admin form is generated from that file, so there is no second place to update.
 | Headers | CSP with `script-src 'self'` and no inline scripts; `frame-src` admits only Bandcamp and Apple Music. HSTS in production. |
 | Crawlers | `robots.txt` disallows `/admin`. |
 
-`npm test` covers all of the above — 29 tests, including that a wrong password fails, that the
+`npm test` covers all of the above — 41 tests, including that a wrong password fails, that the
 pre-login cookie does not survive sign-in, that HTML in a field is escaped, that a shell script
-renamed `.jpg` is refused, that `../../package.json` survives a delete attempt, and that the rate
+renamed `.jpg` is refused, that `../../package.json` survives a delete attempt, that the two
+forgot-password responses are byte-identical, that a reset token is spent after one use, that an
+expired or forged token sets nothing, that a reset turns out other sessions, and that the rate
 limiter engages.
 
 > **Serve this over HTTPS.** Session cookies are only marked `Secure` when `NODE_ENV=production`,
@@ -115,10 +144,30 @@ Any host that runs Node 20+ and gives you a persistent disk. On Render, Railway 
 4. Run once, from a shell on the host:
    ```bash
    npm run seed
-   npm run set-password -- loren '<a long password>'
+   npm run set-password -- loren@example.com '<a long password>'
    ```
 
 See `.env.example`. Back up by copying the single `data/site.db` file.
+
+### Email
+
+Password reset needs to send mail. The app speaks plain **SMTP**, so any provider works —
+Resend, Postmark, SES, Mailgun, Fastmail, Gmail — by setting env vars rather than changing
+code:
+
+```
+SMTP_HOST   smtp.resend.com
+SMTP_PORT   587
+SMTP_USER   resend
+SMTP_PASS   <api key>
+MAIL_FROM   "Loren Oden" <no-reply@lorenoden.com>
+```
+
+STARTTLS is required and the connection times out in ten seconds, so an unreachable mail
+host surfaces an error instead of hanging the page. **With no SMTP configured, production
+refuses to send** rather than silently doing nothing; outside production the link is printed
+to the server log so the flow stays testable. For a local catcher such as Mailpit or Mailhog,
+`SMTP_ALLOW_INSECURE=true` drops the TLS requirement — it is ignored when `NODE_ENV=production`.
 
 ### Where uploads live
 
@@ -152,6 +201,50 @@ npm run content:import     # data/content.json → database
 So the loop is: edit in the portal → `npm run content:export` → commit → Pages republishes.
 Without a running portal you can also edit `data/content.json` by hand.
 
+### Hosting the static site on Netlify
+
+`netlify.toml` at the repo root is ready to use: build `npm run build`, publish `dist`.
+Netlify serves from the domain root, so it runs **without** the `--base` prefix the GitHub
+Pages workflow needs. Point Netlify at the repo and it reads the file itself.
+
+**The portal is not part of that build and cannot run on Netlify** — it needs a long-running
+Node process and a persistent writable disk for the database, the sessions table and
+uploaded images. Host it separately and point `DB_PATH` and `UPLOAD_DIR` at a disk.
+
+Editing content then goes: run the portal locally, `npm run content:export`, commit
+`data/content.json`, push — Netlify rebuilds. Or edit that file by hand.
+
+### Publishing automatically
+
+With a hosted portal, set three more variables and **saving publishes**:
+
+```
+GITHUB_TOKEN   fine-grained token, Contents: read and write on this repo only
+GITHUB_REPO    owner/repo that Netlify builds from
+GITHUB_BRANCH  main
+```
+
+On save the portal commits `data/content.json`, plus any uploaded images the content
+still points at, as a **single commit** through GitHub's Git Data API. Netlify's ordinary
+git deploy takes it from there — usually live in a minute or two.
+
+Why commit rather than have the build read from the portal: the published site stays
+self-contained, so it does not matter whether the portal is awake when Netlify builds, and
+every edit leaves a commit you can read or revert.
+
+Details worth knowing:
+
+- **Nothing changed, nothing committed.** The published file carries no timestamp, so an
+  identical save is detected and skipped rather than producing an empty commit and a
+  pointless build.
+- **Only referenced uploads travel.** An image no longer pointed at by any content is left
+  behind rather than accumulating in the repo.
+- **Saving and publishing are separate steps.** Edits land in the portal's database first,
+  so a GitHub problem shows as "saved, but publishing failed" with a retry — never as a
+  lost edit.
+- The header shows the state at a glance; without the three variables it reads
+  *Publishing off* and the portal works exactly as before.
+
 ### Building it yourself
 
 ```bash
@@ -182,13 +275,13 @@ is how both the database and the JSON file feed the same templates today.
 | `npm run content:export` | Database → `data/content.json` (commit it) |
 | `npm run content:import` | `data/content.json` → database |
 | `npm run seed` | Load the sourced content into empty collections (`--force` to overwrite) |
-| `npm run set-password -- <user> <pw>` | Create the portal account, or change its password |
+| `npm run set-password -- <email> <pw>` | Create the portal account, or change its password |
 | `npm test` | Run the test suite |
 
 ## Layout
 
 ```
-server/   app.js · auth.js · db.js · schema.js · seed.js · uploads.js
+server/   app.js · auth.js · db.js · schema.js · seed.js · uploads.js · mailer.js
           render.js · pagedata.js · content-file.js · export-static.js
 views/    index.ejs · gallery.ejs · admin.ejs · admin-login.ejs · partials
 public/   css/ · js/ · assets/ (fonts, images, 96 orbit frames, uploads/)
