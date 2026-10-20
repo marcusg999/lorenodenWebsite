@@ -158,8 +158,14 @@
   });
 
   /* ---------- image fields & the media picker ---------- */
+  /* A local upload is a rooted path; one in Supabase Storage is already a
+     full URL and must not pick up a leading slash. */
+  function imgUrl(src, ext) {
+    return (/^https?:\/\//i.test(src) ? src : '/' + src) + ext;
+  }
   function imgTag(src) {
-    return src ? '<img src="/' + esc(src) + '.webp" alt="" onerror="this.src=\'/' + esc(src) + '.jpg\'">'
+    return src ? '<img src="' + esc(imgUrl(src, '.webp')) + '" alt="" onerror="this.src=\'' +
+                 esc(imgUrl(src, '.jpg')) + '\'">'
                : '<span class="none">None</span>';
   }
 
@@ -235,7 +241,7 @@
         body.innerHTML = '<div class="medgrid">' + j.media.map(function (m) {
           return '<div class="medcell" data-src="' + esc(m.src) + '" data-name="' + esc(m.name) + '">' +
                  '<button class="rm" type="button" data-rm="1" title="Delete">✕</button>' +
-                 '<img src="/' + esc(m.src) + '.webp" alt="" loading="lazy">' +
+                 '<img src="' + esc(imgUrl(m.src, '.webp')) + '" alt="" loading="lazy">' +
                  '<div class="nm">' + esc(m.name) + '</div></div>';
         }).join('') + '</div>';
       })

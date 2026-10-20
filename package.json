@@ -2,7 +2,7 @@
   "name": "loren-oden-site",
   "version": "1.0.0",
   "private": true,
-  "description": "Loren Oden — official site and admin portal",
+  "description": "Loren Oden \u2014 official site and admin portal",
   "type": "commonjs",
   "main": "server/app.js",
   "engines": {
@@ -17,7 +17,9 @@
     "test": "node --test server/*.test.js",
     "content:export": "node server/content.js export",
     "content:import": "node server/content.js import",
-    "build": "node server/export-static.js"
+    "build": "node server/export-static.js",
+    "test:pg": "DB_DRIVER=postgres node --test server/*.test.js",
+    "test:all": "npm test && npm run test:pg"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -30,6 +32,8 @@
     "multer": "^2.4.0",
     "nodemailer": "^10.1.7",
     "on-headers": "^1.1.0",
+    "pg": "^8.23.1",
+    "serverless-http": "^3.2.0",
     "sharp": "^0.35.5"
   }
 }

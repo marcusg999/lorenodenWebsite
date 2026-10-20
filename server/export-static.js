@@ -26,8 +26,10 @@ const OUT = path.resolve(ROOT, flag('out', 'dist'));
 const fromDb = has('from-db');
 
 const { pageData, fileData } = require('./pagedata');
+
+async function main() {
 const data = fromDb
-  ? pageData({ base, staticMode: true })
+  ? await (async () => { await require('./db').init(); return pageData({ base, staticMode: true }); })()
   : fileData(undefined, { base, staticMode: true });
 
 function copyDir(from, to) {
@@ -73,3 +75,7 @@ fs.copyFileSync(path.join(OUT, 'index.html'), path.join(OUT, '404.html'));
 
 console.log(`\nStatic site → ${OUT}${base ? `   (base path ${base})` : ''}`);
 console.log(fromDb ? 'Source: the live database' : 'Source: data/content.json — no database used');
+if (fromDb) await require('./db').reset();
+}
+
+main().catch(e => { console.error('✗ ' + e.message); process.exit(1); });

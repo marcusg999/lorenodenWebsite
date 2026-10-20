@@ -4,7 +4,7 @@
    Force a reset of one or more collections:  node server/seed.js --force tracks shows  */
 const fs = require('fs');
 const path = require('path');
-const { replaceRows, count, TABLES } = require('./db');
+const { init, replaceRows, count, TABLES } = require('./db');
 
 const args = process.argv.slice(2);
 const force = args.includes('--force');
@@ -107,13 +107,17 @@ const TRACKS = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'ca
 const SEEDS = { nav: NAV, releases: RELEASES, tracks: TRACKS, shows: SHOWS,
                 credits: CREDITS, press: PRESS, shots: SHOTS, links: LINKS };
 
-let wrote = 0;
-for (const t of TABLES) {
-  if (only.length && !only.includes(t)) continue;
-  const have = count(t);
-  if (have > 0 && !force) { console.log(`· ${t.padEnd(9)} ${have} rows already — left alone`); continue; }
-  replaceRows(t, SEEDS[t]);
-  console.log(`✓ ${t.padEnd(9)} seeded ${SEEDS[t].length} rows`);
-  wrote++;
-}
-console.log(wrote ? `\nSeeded ${wrote} collection(s).` : '\nNothing to seed. Use --force to overwrite.');
+(async () => {
+  await init();
+  let wrote = 0;
+  for (const t of TABLES) {
+    if (only.length && !only.includes(t)) continue;
+    const have = await count(t);
+    if (have > 0 && !force) { console.log(`· ${t.padEnd(9)} ${have} rows already — left alone`); continue; }
+    await replaceRows(t, SEEDS[t]);
+    console.log(`✓ ${t.padEnd(9)} seeded ${SEEDS[t].length} rows`);
+    wrote++;
+  }
+  console.log(wrote ? `\nSeeded ${wrote} collection(s).` : '\nNothing to seed. Use --force to overwrite.');
+  await require('./db').reset();
+})().catch(e => { console.error('✗ ' + e.message); process.exit(1); });

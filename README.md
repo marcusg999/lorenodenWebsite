@@ -9,7 +9,7 @@ It runs two ways:
 | | |
 |---|---|
 | **Static** | `npm run build` → `dist/`, plain HTML with **no database and no Node at runtime**. This is what GitHub Pages serves — see [Preview on GitHub Pages](#preview-on-github-pages). |
-| **Full** | `npm start` → the same site plus the `/admin` portal, backed by SQLite. |
+| **Full** | `npm start` → the same site plus the `/admin` portal, backed by SQLite locally or Supabase in production. |
 
 ```bash
 npm install
@@ -112,7 +112,7 @@ admin form is generated from that file, so there is no second place to update.
 | Passwords | bcrypt, cost 12. Minimum twelve characters; obvious ones refused. |
 | Reset tokens | 32 random bytes, stored only as a SHA-256 hash, single use, 30-minute expiry, one live token per account. Resetting signs out every other session. |
 | Reset links | Built from `APP_URL`, never the `Host` header. No account enumeration: the forgot page answers the same either way. Five requests per IP per hour. |
-| Sessions | Server-side in SQLite, `HttpOnly`, `SameSite=Lax`, `Secure` in production, 12-hour rolling expiry. Session id is regenerated on sign-in. |
+| Sessions | Server-side in the database, `HttpOnly`, `SameSite=Lax`, `Secure` in production, 12-hour rolling expiry. Session id is regenerated on sign-in. |
 | CSRF | Per-session synchroniser token required on every write. |
 | Brute force | Ten sign-in attempts per IP per fifteen minutes. |
 | Injection | Content is escaped before the two formatting marks are applied; `javascript:` and other unexpected URL schemes collapse to `#`. |
@@ -135,53 +135,112 @@ limiter engages.
 
 ## Deploying
 
-The site is two halves that can live in different places:
+The site is two halves, and they can live on one platform or two:
 
 | | Where | Needs |
 |---|---|---|
-| Public site | Netlify or GitHub Pages — static | nothing |
-| Admin portal | a Node host with a persistent disk | the disk, and env vars below |
+| Public site | Netlify or GitHub Pages — static files | nothing |
+| Admin portal | a Netlify Function, or any Node host | Supabase, or a persistent disk |
 
 They are linked by the repository: the portal commits content to it, and the
 public site rebuilds from that commit.
 
-### The portal on Render
+### Everything on Netlify, with Supabase
 
-`render.yaml` is a Blueprint, so most of this is filled in for you:
+This is the recommended setup, and the only one where both halves live on the
+same platform. The portal runs as a Netlify Function; Supabase holds what a
+function cannot keep for itself.
 
-1. Render → **New → Blueprint** → pick this repository. It reads the file and
-   proposes the service, a 1 GB disk at `/var/data`, and the variables.
-2. Fill in the ones it asks for: `APP_URL` (this service's own URL), the four
-   `SMTP_*` values if you want password reset, and `GITHUB_TOKEN` /
-   `GITHUB_REPO` if you want saving to publish. All optional except `APP_URL`.
-3. Apply, wait for the first build.
-4. From the service's **Shell**, once:
-   ```bash
-   npm run set-password -- loren@example.com '<a long password>'
-   ```
-5. Sign in at `<APP_URL>/admin/login`.
+A Netlify Function has no writable disk and is recycled between requests, so
+anything the portal remembers has to live outside it. Three things did, and
+all three now sit in Supabase:
 
-**The disk is the step that matters.** `DB_PATH` and `UPLOAD_DIR` point at it;
-without it the database and every uploaded image are wiped on each deploy.
-Render's free instance type cannot mount a disk, which is why the blueprint
-asks for the smallest paid one.
+| | Was | Is now |
+|---|---|---|
+| Content | SQLite file | Postgres tables |
+| Sessions | SQLite file | `sessions` table — the owner stays signed in whichever instance answers |
+| Rate limits | one instance's memory | `rate_hits` table — a limit that cannot be dodged by landing elsewhere |
+| Uploaded images | local folder | Supabase Storage, served from its own URL |
 
-Railway, Fly.io and a plain VPS work the same way — run `npm ci` then
-`npm start`, mount a disk, set the same variables.
+**1. Create the Supabase project** (the free tier is enough).
 
-Any host that runs Node 20+ and gives you a persistent disk. On Render, Railway or Fly:
+**2. Copy two things from it.**
+ - *Project Settings → Database → Connection string → **Transaction pooler*** —
+   the one on port **6543**, not 5432. A function opens and drops connections
+   constantly; the direct port runs out. Put your database password into it.
+ - *Project Settings → API → `service_role` key.* This key bypasses row-level
+   security, so it belongs only in Netlify's environment variables — never in
+   the repository and never in anything the browser loads.
 
-1. Build command `npm install`, start command `npm start`.
-2. Set `SESSION_SECRET` (`openssl rand -hex 32`) and `NODE_ENV=production`.
-3. Attach a persistent disk and point `DB_PATH` at it — for example `/var/data/site.db`.
-   **Without a persistent disk the database is wiped on every deploy.**
+**3. Make a Storage bucket** called `uploads`, and mark it **public**. The
+images are meant to be seen; only writing needs the key.
+
+**4. Set these in Netlify → Site settings → Environment variables:**
+
+```
+DB_DRIVER=postgres
+DATABASE_URL=postgresql://postgres.<ref>:<password>@<host>:6543/postgres
+STORAGE=supabase
+SUPABASE_URL=https://<ref>.supabase.co
+SUPABASE_SERVICE_KEY=<the service_role key>
+SUPABASE_BUCKET=uploads
+SESSION_SECRET=<openssl rand -hex 32>
+NODE_ENV=production
+APP_URL=https://<your-site>.netlify.app
+```
+
+Add the `SMTP_*` values for password reset and `GITHUB_TOKEN` / `GITHUB_REPO`
+for publishing — both optional, both described below.
+
+**5. Deploy.** `netlify.toml` already routes `/admin` and `/api` to the
+function and builds the public pages into `dist/`. The tables are created on
+the function's first run; nothing has to be run by hand.
+
+**6. Create the account.** The one step that needs a terminal — from a clone,
+with the same `DATABASE_URL` and `DB_DRIVER=postgres` in your environment:
+
+```bash
+npm run set-password -- loren@example.com '<a long password>'
+```
+
+Then sign in at `<APP_URL>/admin/login`.
+
+### Moving an existing SQLite portal to Supabase
+
+`data/content.json` is the format both backends read and write, so the move is
+an export and an import:
+
+```bash
+npm run content:export                       # SQLite → data/content.json
+DB_DRIVER=postgres DATABASE_URL=<pooler url> npm run content:import
+DB_DRIVER=postgres DATABASE_URL=<pooler url> npm run set-password -- <email> '<pw>'
+```
+
+Accounts and sessions are deliberately not carried over: password hashes are
+worth re-making, and everyone signing in again is the right outcome of a move.
+Images already uploaded are in `public/assets/uploads/`; upload them to the
+`uploads` bucket and re-pick them in the portal, or leave them — the content
+file keeps pointing at the committed copies, which the static build still ships.
+
+### A Node host instead
+
+Any host that runs Node 20+ works without Supabase, as long as it gives you a
+persistent disk:
+
+1. Build command `npm ci`, start command `npm start`.
+2. Set `SESSION_SECRET` (`openssl rand -hex 32`), `NODE_ENV=production` and `APP_URL`.
+3. Attach a disk and point `DB_PATH` **and** `UPLOAD_DIR` at it — for example
+   `/var/data/site.db` and `/var/data/uploads`.
+   **Without a persistent disk the database and every uploaded image are wiped on each deploy.**
 4. Run once, from a shell on the host:
    ```bash
    npm run seed
    npm run set-password -- loren@example.com '<a long password>'
    ```
 
-See `.env.example`. Back up by copying the single `data/site.db` file.
+Nothing stops you mixing the two either — `DB_DRIVER=postgres` with
+`STORAGE=local`, or the reverse — but on a platform with no disk both have to
+move together.
 
 ### Email
 
@@ -205,9 +264,18 @@ to the server log so the flow stays testable. For a local catcher such as Mailpi
 
 ### Where uploads live
 
-By default `public/assets/uploads/`. **On a host with an ephemeral filesystem, set `UPLOAD_DIR`
-to a path on the persistent disk** — otherwise uploaded images disappear on the next deploy,
-exactly like the database.
+`STORAGE` decides, and the portal behaves the same either way:
+
+| `STORAGE` | Images go to | Stored as |
+|---|---|---|
+| `local` (default) | `UPLOAD_DIR`, default `public/assets/uploads/` | `assets/uploads/<name>` |
+| `supabase` | the `SUPABASE_BUCKET` bucket | the bucket's public URL |
+
+Each upload is re-encoded into a `.webp` and a `.jpg` with the metadata
+stripped, and recorded without its extension; the templates ask for whichever
+the browser can take. **On a host with an ephemeral filesystem, `local` loses
+every image on the next deploy** — use `supabase`, or point `UPLOAD_DIR` at a
+persistent disk.
 
 ---
 
@@ -241,12 +309,12 @@ Without a running portal you can also edit `data/content.json` by hand.
 Netlify serves from the domain root, so it runs **without** the `--base` prefix the GitHub
 Pages workflow needs. Point Netlify at the repo and it reads the file itself.
 
-**The portal is not part of that build and cannot run on Netlify** — it needs a long-running
-Node process and a persistent writable disk for the database, the sessions table and
-uploaded images. Host it separately and point `DB_PATH` and `UPLOAD_DIR` at a disk.
+The portal rides along as a Netlify Function — see **Everything on Netlify, with
+Supabase** above for the variables it needs. Without them the public site still
+builds and serves perfectly; only `/admin` is unavailable.
 
-Editing content then goes: run the portal locally, `npm run content:export`, commit
-`data/content.json`, push — Netlify rebuilds. Or edit that file by hand.
+With no portal at all, editing goes: change `data/content.json` by hand, or run the
+portal locally, `npm run content:export`, commit, push — Netlify rebuilds either way.
 
 ### Publishing automatically
 
@@ -292,12 +360,33 @@ npm run build -- --out public_html            # somewhere other than dist/
 that prefix. The build also rewrites `/gallery` to `gallery.html` and writes `.nojekyll` and a
 `404.html`. `dist/` carries no admin page, stylesheet or script.
 
-### When Supabase arrives
+### Two databases, one set of queries
 
-`data/content.json` is the handover format — a flat `content` object plus one array per list,
-with no SQLite specifics in it. Point a new adapter at the same shape and
-`server/pagedata.js` keeps working; `build(src, opts)` already takes a plain data object, which
-is how both the database and the JSON file feed the same templates today.
+`DB_DRIVER` picks a backend at startup and nothing above it knows which one it
+got:
+
+| | |
+|---|---|
+| `sqlite` (default) | a file, no setup — what local development uses |
+| `postgres` | `DATABASE_URL`; Supabase, or any Postgres |
+
+`server/data/` holds the two drivers behind one small async interface, and
+`server/db.js` is the only thing the rest of the app talks to. Queries are
+written once with `$1` placeholders; the SQLite driver rewrites them to `?`.
+The schemas are kept deliberately parallel, down to `columnsOf()` returning
+the same column list from either side — the collection editor builds its
+columns from that, so a drift between the two would show up immediately.
+
+`data/content.json` remains the format both backends read and write, which is
+what makes moving between them an export and an import rather than a migration.
+
+The test suite runs against both:
+
+```bash
+npm test          # SQLite
+npm run test:pg   # Postgres, with DATABASE_URL set
+npm run test:all  # both in turn
+```
 
 ## Scripts
 
@@ -310,13 +399,17 @@ is how both the database and the JSON file feed the same templates today.
 | `npm run content:import` | `data/content.json` → database |
 | `npm run seed` | Load the sourced content into empty collections (`--force` to overwrite) |
 | `npm run set-password -- <email> <pw>` | Create the portal account, or change its password |
-| `npm test` | Run the test suite |
+| `npm test` | Run the test suite against SQLite |
+| `npm run test:pg` | The same suite against Postgres (`DATABASE_URL` required) |
+| `npm run test:all` | Both in turn |
 
 ## Layout
 
 ```
 server/   app.js · auth.js · db.js · schema.js · seed.js · uploads.js · mailer.js
-          render.js · pagedata.js · content-file.js · export-static.js
+          render.js · pagedata.js · content-file.js · export-static.js · storage.js
+server/data/   index.js · sqlite.js · postgres.js   — the two backends
+netlify/functions/portal.js                         — the portal, as a function
 views/    index.ejs · gallery.ejs · admin.ejs · admin-login.ejs · partials
 public/   css/ · js/ · assets/ (fonts, images, 96 orbit frames, uploads/)
 data/     content.json (committed — what the static build reads)
