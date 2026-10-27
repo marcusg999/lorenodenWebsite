@@ -11,6 +11,8 @@ const media = require('./uploads');
 const mailer = require('./mailer');
 const publisher = require('./publish');
 
+const db = require('./db');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 const PROD = process.env.NODE_ENV === 'production';
@@ -55,16 +57,18 @@ app.use(auth.sessionMiddleware());
 app.use('/assets', express.static(path.join(__dirname, '..', 'public', 'assets'), {
   maxAge: PROD ? '30d' : 0, immutable: PROD,
 }));
-app.use('/assets/uploads', express.static(media.UPLOAD_DIR, {
-  maxAge: PROD ? '30d' : 0, index: false, dotfiles: 'deny',
-}));
+if ((process.env.STORAGE || 'local').toLowerCase() === 'local') {
+  app.use('/assets/uploads', express.static(media.UPLOAD_DIR, {
+    maxAge: PROD ? '30d' : 0, index: false, dotfiles: 'deny',
+  }));
+}
 app.use('/css', express.static(path.join(__dirname, '..', 'public', 'css'), { maxAge: PROD ? '1d' : 0 }));
 app.use('/js', express.static(path.join(__dirname, '..', 'public', 'js'), { maxAge: PROD ? '1d' : 0 }));
 
 /* The listening room's catalog, generated from the database so the admin's
    edits appear without a rebuild. listening.js consumes it unchanged. */
-app.get('/data/catalog.js', (req, res) => {
-  const rows = listRows('tracks').map((t, i) => ({
+app.get('/data/catalog.js', async (req, res) => {
+  const rows = (await listRows('tracks')).map((t, i) => ({
     order: i + 1, title: t.title, artist: t.artist, album: t.album,
     category: t.category, role: t.role, source: t.source, embed: t.embed || '',
   }));
@@ -73,8 +77,8 @@ app.get('/data/catalog.js', (req, res) => {
      .send('window.LO_CATALOG = ' + JSON.stringify(rows) + ';\n');
 });
 
-app.get('/', (req, res) => res.render('index', pageData()));
-app.get('/gallery', (req, res) => res.render('gallery', pageData()));
+app.get('/', async (req, res) => res.render('index', await pageData()));
+app.get('/gallery', async (req, res) => res.render('gallery', await pageData()));
 app.get('/gallery.html', (req, res) => res.redirect(301, '/gallery'));
 app.get('/index.html', (req, res) => res.redirect(301, '/'));
 
@@ -84,17 +88,17 @@ app.get('/robots.txt', (req, res) =>
 /* =======================================================================
    ADMIN
    ======================================================================= */
-app.get('/admin/login', (req, res) => {
+app.get('/admin/login', async (req, res) => {
   if (req.session.userId) return res.redirect('/admin');
-  res.render('admin-login', { csrf: auth.csrfToken(req), error: null, noUsers: auth.userCount() === 0 });
+  res.render('admin-login', { csrf: auth.csrfToken(req), error: null, noUsers: (await auth.userCount()) === 0 });
 });
 
-app.post('/admin/login', auth.loginLimiter, auth.checkCsrf, (req, res) => {
+app.post('/admin/login', auth.loginLimiter, auth.checkCsrf, async (req, res) => {
   const { username, password } = req.body || {};
-  const user = auth.verify(username, password);
+  const user = await auth.verify(username, password);
   if (!user) {
     return res.status(401).render('admin-login', {
-      csrf: auth.csrfToken(req), noUsers: auth.userCount() === 0,
+      csrf: auth.csrfToken(req), noUsers: (await auth.userCount()) === 0,
       error: 'That username and password did not match.',
     });
   }
@@ -120,11 +124,11 @@ app.post('/admin/forgot', auth.forgotLimiter, auth.checkCsrf, async (req, res) =
   const email = auth.normaliseEmail((req.body || {}).email);
   const done = () => res.render('admin-forgot', { csrf: auth.csrfToken(req), sent: true, error: null });
 
-  const user = email ? auth.findUser(email) : null;
+  const user = email ? await auth.findUser(email) : null;
   if (!user) return done();                       // same answer either way
 
   try {
-    const token = auth.createResetToken(user.id);
+    const token = await auth.createResetToken(user.id);
     const url = `${mailer.appUrl(req)}/admin/reset?token=${encodeURIComponent(token)}`;
     await mailer.sendResetEmail(user.email, url, Math.round(auth.RESET_TTL_MS / 60000));
   } catch (e) {
@@ -137,31 +141,31 @@ app.post('/admin/forgot', auth.forgotLimiter, auth.checkCsrf, async (req, res) =
   done();
 });
 
-app.get('/admin/reset', (req, res) => {
+app.get('/admin/reset', async (req, res) => {
   const token = String(req.query.token || '');
-  const user = auth.consumeResetToken(token, { peek: true });
+  const user = await auth.consumeResetToken(token, { peek: true });
   res.render('admin-reset', {
     csrf: auth.csrfToken(req), token,
     valid: Boolean(user), error: null, done: false,
   });
 });
 
-app.post('/admin/reset', auth.resetLimiter, auth.checkCsrf, (req, res) => {
+app.post('/admin/reset', auth.resetLimiter, auth.checkCsrf, async (req, res) => {
   const { token = '', password = '', confirm = '' } = req.body || {};
   const fail = (msg, valid = true) => res.status(400).render('admin-reset', {
     csrf: auth.csrfToken(req), token, valid, error: msg, done: false,
   });
 
-  if (!auth.consumeResetToken(token, { peek: true })) {
+  if (!await auth.consumeResetToken(token, { peek: true })) {
     return fail('That reset link has expired or has already been used. Request a new one.', false);
   }
   if (password !== confirm) return fail('The two passwords do not match.');
   try { auth.assertPasswordStrength(password); } catch (e) { return fail(e.message); }
 
-  const user = auth.consumeResetToken(token);     // single use, spent here
+  const user = await auth.consumeResetToken(token);   // single use, spent here
   if (!user) return fail('That reset link has expired or has already been used. Request a new one.', false);
 
-  auth.setPasswordById(user.id, password);        // also turns out other sessions
+  await auth.setPasswordById(user.id, password);  // also turns out other sessions
   req.session.destroy(() => res.render('admin-reset', {
     csrf: '', token: '', valid: true, error: null, done: true,
   }));
@@ -171,15 +175,20 @@ app.post('/admin/logout', auth.requireAuth, auth.checkCsrf, (req, res) => {
   req.session.destroy(() => res.redirect('/admin/login'));
 });
 
-app.get('/admin', auth.requireAuth, (req, res) => {
+app.get('/admin', auth.requireAuth, async (req, res) => {
+  const [content, rows, columns] = await Promise.all([
+    allContent(),
+    Promise.all(TABLES.map(t => listRows(t))),
+    Promise.all(TABLES.map(t => columnsOf(t))),
+  ]);
   res.render('admin', {
     username: req.session.username,
     csrf: auth.csrfToken(req),
     groups: GROUPS,
     collections: COLLECTIONS,
-    content: allContent(),
-    rows: Object.fromEntries(TABLES.map(t => [t, listRows(t)])),
-    columns: Object.fromEntries(TABLES.map(t => [t, columnsOf(t)])),
+    content,
+    rows: Object.fromEntries(TABLES.map((t, i) => [t, rows[i]])),
+    columns: Object.fromEntries(TABLES.map((t, i) => [t, columns[i]])),
     publish: publisher.status(),
   });
 });
@@ -188,7 +197,7 @@ app.get('/admin', auth.requireAuth, (req, res) => {
 const api = express.Router();
 api.use(auth.requireAuth, auth.checkCsrf);
 
-api.put('/content', (req, res) => {
+api.put('/content', async (req, res) => {
   const body = req.body || {};
   const pairs = [];
   for (const [k, v] of Object.entries(body)) {
@@ -202,18 +211,18 @@ api.put('/content', (req, res) => {
     pairs.push([k, s]);
   }
   if (!pairs.length) return res.status(400).json({ error: 'Nothing to save.' });
-  setContent(pairs);
+  await setContent(pairs);
   res.json({ ok: true, saved: pairs.length });
 });
 
-api.put('/collection/:table', (req, res) => {
+api.put('/collection/:table', async (req, res) => {
   const t = req.params.table;
   if (!isTable(t)) return res.status(404).json({ error: 'Unknown collection.' });
   const rows = req.body && req.body.rows;
   if (!Array.isArray(rows)) return res.status(400).json({ error: 'Expected a rows array.' });
   if (rows.length > 500) return res.status(400).json({ error: 'That is more than 500 rows.' });
 
-  const cols = columnsOf(t).filter(c => c !== 'position');
+  const cols = (await columnsOf(t)).filter(c => c !== 'position');
   const clean = [];
   for (const row of rows) {
     if (!row || typeof row !== 'object') return res.status(400).json({ error: 'Bad row.' });
@@ -229,11 +238,11 @@ api.put('/collection/:table', (req, res) => {
   if (t === 'shows') {
     for (const r of clean) if (!['upcoming', 'past'].includes(r.kind)) r.kind = 'past';
   }
-  replaceRows(t, clean);
+  await replaceRows(t, clean);
   res.json({ ok: true, rows: clean.length });
 });
 
-api.get('/media', (req, res) => res.json({ media: media.listMedia() }));
+api.get('/media', async (req, res) => res.json({ media: await media.listMedia() }));
 
 api.post('/upload', (req, res) => {
   media.upload.single('image')(req, res, async err => {
@@ -252,8 +261,8 @@ api.post('/upload', (req, res) => {
   });
 });
 
-api.delete('/media/:name', (req, res) => {
-  try { media.deleteMedia(req.params.name); res.json({ ok: true }); }
+api.delete('/media/:name', async (req, res) => {
+  try { await media.deleteMedia(req.params.name); res.json({ ok: true }); }
   catch (e) { res.status(400).json({ error: e.message }); }
 });
 
@@ -277,13 +286,13 @@ api.post('/publish', async (req, res) => {
   }
 });
 
-api.post('/password', (req, res) => {
+api.post('/password', async (req, res) => {
   const { current, next } = req.body || {};
-  if (!auth.verify(req.session.username, current)) {
+  if (!await auth.verify(req.session.username, current)) {
     return res.status(401).json({ error: 'Your current password is not correct.' });
   }
   try {
-    auth.setPassword(req.session.username, next);
+    await auth.setPassword(req.session.username, next);
     res.json({ ok: true });
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
@@ -306,11 +315,22 @@ app.use((err, req, res, _next) => {
   res.status(code).json({ error: PROD ? 'Something went wrong.' : String(err.message) });
 });
 
-if (require.main === module) {
-  if (auth.userCount() === 0) {
+/** Open the database and create the schema. Everything else waits on this. */
+const ready = db.init().then(async () => {
+  if (await auth.userCount() === 0) {
     console.warn('\n⚠  No portal account exists yet. Create one with:\n' +
-                 "   npm run set-password -- <username> '<password>'\n");
+                 "   npm run set-password -- <email> '<password>'\n");
   }
-  app.listen(PORT, () => console.log(`\n  Loren Oden — http://localhost:${PORT}\n  Admin      — http://localhost:${PORT}/admin\n`));
+  return app;
+});
+
+if (require.main === module) {
+  ready
+    .then(() => app.listen(PORT, () =>
+      console.log(`\n  Loren Oden — http://localhost:${PORT}\n  Admin      — http://localhost:${PORT}/admin\n` +
+                  `  Database   — ${(process.env.DB_DRIVER || 'sqlite')}   Images — ${(process.env.STORAGE || 'local')}\n`)))
+    .catch(e => { console.error('✗ Could not start:', e.message); process.exit(1); });
 }
+
 module.exports = app;
+module.exports.ready = ready;

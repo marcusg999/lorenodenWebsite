@@ -5,33 +5,55 @@ const os = require('os');
 const path = require('path');
 const fs = require('fs');
 
-/* Each run gets a throwaway database. */
+/* Each run gets a throwaway database. The whole file runs against whichever
+   backend DB_DRIVER names, so the same assertions cover SQLite and Postgres:
+     npm test            SQLite
+     npm run test:pg     Postgres / Supabase, with DATABASE_URL set          */
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'lo-test-'));
 process.env.DB_PATH = path.join(tmp, 'test.db');
 process.env.SESSION_SECRET = 'test-secret-not-used-in-production';
+// Test files run as parallel processes; on Postgres they would otherwise
+// share one set of tables. Each gets its own schema instead.
+process.env.PGSCHEMA = process.env.PGSCHEMA || 'test_app';
+const DRIVER = process.env.DB_DRIVER || 'sqlite';
 
 const app = require('./app');
 const { createUser } = require('./auth');
-const { replaceRows } = require('./db');
+const { init, reset, replaceRows, query, TABLES } = require('./db');
+
+/** Postgres keeps its tables between runs; start every run from empty. */
+async function wipe() {
+  if (DRIVER === 'sqlite') return;
+  for (const t of ['rate_hits', 'sessions', 'reset_tokens', 'users', 'content', ...TABLES]) {
+    await query(`DELETE FROM ${t}`);
+  }
+}
 
 let server, base, SESSION;
 const PW = 'quiet-lantern-9471';
 const EMAIL = 'loren@example.com';
 
 before(async () => {
-  replaceRows('nav', [{ label: 'Music', href: '/#room' }, { label: 'From the Road', href: '/gallery' }]);
-  replaceRows('tracks', [
+  await init();
+  await wipe();
+  await replaceRows('nav', [{ label: 'Music', href: '/#room' }, { label: 'From the Road', href: '/gallery' }]);
+  await replaceRows('tracks', [
     { title: 'Through My Soul', artist: 'Adrian Younge', album: 'x', category: 'Features', role: 'Featured vocals', source: 'https://example.com', embed: '' },
     { title: 'Is There a Way', artist: 'Loren Oden', album: 'y', category: 'Solo', role: 'Lead vocals', source: 'https://example.com', embed: '' },
   ]);
-  replaceRows('shows', [{ kind: 'past', date_label: 'May 2019', venue: 'Norwich Arts Centre', location: 'Norwich', note: '', url: 'https://example.com' }]);
-  replaceRows('shots', [{ src: 'assets/img/norwich-1', alt: 'a', caption_bold: 'Norwich', caption: '2019', width: 1, height: 1, shape: 'a' }]);
-  createUser(EMAIL, PW);
+  await replaceRows('shows', [{ kind: 'past', date_label: 'May 2019', venue: 'Norwich Arts Centre', location: 'Norwich', note: '', url: 'https://example.com' }]);
+  await replaceRows('shots', [{ src: 'assets/img/norwich-1', alt: 'a', caption_bold: 'Norwich', caption: '2019', width: 1, height: 1, shape: 'a' }]);
+  await createUser(EMAIL, PW);
   await new Promise(r => { server = app.listen(0, r); });
   base = `http://127.0.0.1:${server.address().port}`;
   SESSION = await signIn();   // reused by the write tests below
 });
-after(() => { server.close(); fs.rmSync(tmp, { recursive: true, force: true }); });
+after(async () => {
+  server.close();
+  await wipe();
+  await reset();
+  fs.rmSync(tmp, { recursive: true, force: true });
+});
 
 /** A fresh client IP per call: the app trusts one proxy hop, so this keys the
  *  rate limiter separately and keeps tests independent of each other's order. */
@@ -335,7 +357,7 @@ test('the content file round-trips through the database', async () => {
   const os2 = require('os'), fs2 = require('fs'), path2 = require('path');
   const cf = require('./content-file');
   const tmpFile = path2.join(fs2.mkdtempSync(path2.join(os2.tmpdir(), 'lo-cf-')), 'content.json');
-  const written = cf.exportFromDb(tmpFile);
+  const written = await cf.exportFromDb(tmpFile);
   assert.ok(Object.keys(written.content).length >= 70);
   const read = cf.readFile(tmpFile);
   assert.equal(read.tracks.length, written.tracks.length);
@@ -347,7 +369,7 @@ test('the static build renders from JSON alone, with a base path and .html links
   const cf = require('./content-file');
   const { fileData } = require('./pagedata');
   const tmpFile = path2.join(fs2.mkdtempSync(path2.join(os2.tmpdir(), 'lo-build-')), 'content.json');
-  cf.exportFromDb(tmpFile);
+  await cf.exportFromDb(tmpFile);
 
   const views = path2.join(__dirname, '..', 'views');
   const data = fileData(tmpFile, { base: '/lorenodenWebsite', staticMode: true });
@@ -427,7 +449,7 @@ test('forgot-password answers identically for a known and an unknown address', a
 
 test('a reset token sets a new password and is then spent', async () => {
   const NEW = 'a-brand-new-lantern-42';
-  const token = createResetToken(findUser(EMAIL).id);
+  const token = await createResetToken((await findUser(EMAIL)).id);
 
   const ok = await postReset(token, NEW);
   assert.equal(ok.status, 200);
@@ -441,37 +463,35 @@ test('a reset token sets a new password and is then spent', async () => {
   assert.match(await reuse.text(), /expired or has already been used/);
 
   // put it back for the tests that follow
-  require('./auth').setPassword(EMAIL, PW);
+  await require('./auth').setPassword(EMAIL, PW);
 });
 
 test('an expired token is refused', async () => {
-  const { db } = require('./db');
-  const token = createResetToken(findUser(EMAIL).id);
-  db.prepare('UPDATE reset_tokens SET expires_at = ? WHERE user_id = ?')
-    .run(Date.now() - 1000, findUser(EMAIL).id);
-  assert.equal(consumeResetToken(token), null);
+  const token = await createResetToken((await findUser(EMAIL)).id);
+  await query('UPDATE reset_tokens SET expires_at = $1 WHERE user_id = $2',
+    [Date.now() - 1000, (await findUser(EMAIL)).id]);
+  assert.equal(await consumeResetToken(token), null);
   const r = await postReset(token, 'should-not-be-set-111');
   assert.equal(r.status, 400);
-  assert.equal(require('./auth').verify(EMAIL, 'should-not-be-set-111'), null);
+  assert.equal(await require('./auth').verify(EMAIL, 'should-not-be-set-111'), null);
 });
 
 test('a forged token is refused', async () => {
   const r = await postReset('not-a-real-token-at-all', 'should-not-be-set-222');
   assert.equal(r.status, 400);
-  assert.equal(require('./auth').verify(EMAIL, 'should-not-be-set-222'), null);
+  assert.equal(await require('./auth').verify(EMAIL, 'should-not-be-set-222'), null);
 });
 
 test('the raw token is never stored — only its hash', async () => {
-  const { db } = require('./db');
-  const token = createResetToken(findUser(EMAIL).id);
-  const rows = db.prepare('SELECT token_hash FROM reset_tokens').all();
+  const token = await createResetToken((await findUser(EMAIL)).id);
+  const { rows } = await query('SELECT token_hash FROM reset_tokens');
   assert.ok(rows.length > 0);
   assert.ok(!rows.some(r => r.token_hash === token), 'the plain token must not be in the table');
   assert.ok(rows.every(r => /^[0-9a-f]{64}$/.test(r.token_hash)), 'stored values are sha-256 hashes');
 });
 
 test('mismatched or weak passwords are refused by the reset form', async () => {
-  const token = createResetToken(findUser(EMAIL).id);
+  const token = await createResetToken((await findUser(EMAIL)).id);
   const mismatch = await postReset(token, 'one-good-password-1', 'a-different-one-22');
   assert.equal(mismatch.status, 400);
   assert.match(await mismatch.text(), /do not match/);
@@ -486,13 +506,13 @@ test('resetting a password signs out every other browser', async () => {
   assert.equal((await fetch(`${base}/admin`, { headers: { cookie: other.cookie }, redirect: 'manual' })).status, 200);
 
   const NEW = 'turned-out-lantern-77';
-  const token = createResetToken(findUser(EMAIL).id);
+  const token = await createResetToken((await findUser(EMAIL)).id);
   assert.equal((await postReset(token, NEW)).status, 200);
 
   const stillIn = await fetch(`${base}/admin`, { headers: { cookie: other.cookie }, redirect: 'manual' });
   assert.equal(stillIn.status, 302, 'the other session must be turned out');
 
-  require('./auth').setPassword(EMAIL, PW);
+  await require('./auth').setPassword(EMAIL, PW);
 });
 
 test('the reset link is built from APP_URL, not the Host header', async () => {
@@ -567,7 +587,7 @@ test('the blob hash matches what git itself would compute', () => {
   assert.equal(publisher._sha1(Buffer.alloc(0)), 'e69de29bb2d1d6434b8b29ae775ad8c2e48c5391');
 });
 
-test('the payload carries the content file and only referenced uploads', () => {
+test('the payload carries the content file and only referenced uploads', async () => {
   const fs2 = require('fs'), path2 = require('path'), os2 = require('os');
   const dir = fs2.mkdtempSync(path2.join(os2.tmpdir(), 'lo-up-'));
   const prev = process.env.UPLOAD_DIR;
@@ -577,51 +597,51 @@ test('the payload carries the content file and only referenced uploads', () => {
     fs2.writeFileSync(path2.join(dir, n + '.jpg'), 'jpg');
   }
   const { setContent } = require('./db');
-  setContent([['about.portrait.src', 'assets/uploads/used-aaaa1111']]);
+  await setContent([['about.portrait.src', 'assets/uploads/used-aaaa1111']]);
 
-  const paths = publisher.collectFiles().map(f => f.path);
+  const paths = (await publisher.collectFiles()).map(f => f.path);
   assert.ok(paths.includes('data/content.json'));
   assert.ok(paths.includes('public/assets/uploads/used-aaaa1111.webp'), 'a referenced upload travels with the content');
   assert.ok(paths.includes('public/assets/uploads/used-aaaa1111.jpg'));
   assert.ok(!paths.some(p => p.includes('orphan')), 'an unreferenced upload is left behind');
 
-  setContent([['about.portrait.src', 'assets/img/portrait']]);
+  await setContent([['about.portrait.src', 'assets/img/portrait']]);
   if (prev) process.env.UPLOAD_DIR = prev; else delete process.env.UPLOAD_DIR;
   fs2.rmSync(dir, { recursive: true, force: true });
 });
 
-test('a path-traversing image reference cannot reach outside the upload folder', () => {
+test('a path-traversing image reference cannot reach outside the upload folder', async () => {
   const fs2 = require('fs'), path2 = require('path'), os2 = require('os');
   const dir = fs2.mkdtempSync(path2.join(os2.tmpdir(), 'lo-trav-'));
   const prev = process.env.UPLOAD_DIR;
   process.env.UPLOAD_DIR = dir;
   const { setContent } = require('./db');
-  setContent([['about.portrait.src', 'assets/uploads/../../../../etc/passwd']]);
-  const paths = publisher.collectFiles().map(f => f.path);
+  await setContent([['about.portrait.src', 'assets/uploads/../../../../etc/passwd']]);
+  const paths = (await publisher.collectFiles()).map(f => f.path);
   assert.ok(!paths.some(p => p.includes('passwd') || p.includes('..')), 'nothing outside the folder is collected');
-  setContent([['about.portrait.src', 'assets/img/portrait']]);
+  await setContent([['about.portrait.src', 'assets/img/portrait']]);
   if (prev) process.env.UPLOAD_DIR = prev; else delete process.env.UPLOAD_DIR;
   fs2.rmSync(dir, { recursive: true, force: true });
 });
 
-test('the published content file carries no timestamp, so an unchanged save commits nothing', () => {
-  const a = publisher.collectFiles().find(f => f.path === 'data/content.json').text;
-  const b = publisher.collectFiles().find(f => f.path === 'data/content.json').text;
+test('the published content file carries no timestamp, so an unchanged save commits nothing', async () => {
+  const a = (await publisher.collectFiles()).find(f => f.path === 'data/content.json').text;
+  const b = (await publisher.collectFiles()).find(f => f.path === 'data/content.json').text;
   assert.equal(a, b, 'two exports of the same content must be byte-identical');
   assert.ok(!/exportedAt/.test(a), 'a wall-clock stamp would make every save look like a change');
 
   const { setContent } = require('./db');
-  setContent([['hero.eyebrow', 'A different line entirely.']]);
-  const c = publisher.collectFiles().find(f => f.path === 'data/content.json').text;
+  await setContent([['hero.eyebrow', 'A different line entirely.']]);
+  const c = (await publisher.collectFiles()).find(f => f.path === 'data/content.json').text;
   assert.notEqual(a, c, 'a real edit must change the file');
-  setContent([['hero.eyebrow', 'A voice rooted in soul.']]);
+  await setContent([['hero.eyebrow', 'A voice rooted in soul.']]);
 });
 
-test('the content file round-trips without a timestamp field', () => {
+test('the content file round-trips without a timestamp field', async () => {
   const os2 = require('os'), fs2 = require('fs'), path2 = require('path');
   const cf = require('./content-file');
   const f = path2.join(fs2.mkdtempSync(path2.join(os2.tmpdir(), 'lo-ts-')), 'content.json');
-  cf.exportFromDb(f);
+  await cf.exportFromDb(f);
   assert.ok(!fs2.readFileSync(f, 'utf8').includes('exportedAt'));
   assert.ok(Object.keys(cf.readFile(f).content).length >= 70, 'it still reads back');
 });

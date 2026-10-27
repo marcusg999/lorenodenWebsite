@@ -17,8 +17,11 @@ function build(src, opts) {
   const shows = src.shows || [];
   const counts = tracks.reduce((a, t) => (a[t.category] = (a[t.category] || 0) + 1, a), {});
 
-  /** Asset URLs: always rooted, always prefixed with the base. */
-  const u = p => base + (String(p).startsWith('/') ? p : '/' + p);
+  /** Asset URLs: always rooted, always prefixed with the base. An image
+   *  held in Supabase Storage is already an absolute URL and is left alone. */
+  const u = p => /^(https?:)?\/\//i.test(String(p))
+    ? String(p)
+    : base + (String(p).startsWith('/') ? p : '/' + p);
 
   /** Navigation and content links, aware of the static build's file names. */
   const link = href => {
@@ -53,14 +56,12 @@ function build(src, opts) {
 }
 
 /** Live data, straight from the database. */
-function pageData(opts) {
-  const { allContent, listRows } = require('./db');
-  return build({
-    content: allContent(),
-    nav: listRows('nav'), releases: listRows('releases'), tracks: listRows('tracks'),
-    shows: listRows('shows'), credits: listRows('credits'), press: listRows('press'),
-    shots: listRows('shots'), links: listRows('links'),
-  }, opts);
+async function pageData(opts) {
+  const { allContent, listRows, TABLES } = require('./db');
+  const [content, ...lists] = await Promise.all([allContent(), ...TABLES.map(listRows)]);
+  const src = { content };
+  TABLES.forEach((t, i) => { src[t] = lists[i]; });
+  return build(src, opts);
 }
 
 /** Data from the committed JSON file — no database involved. */
