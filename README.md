@@ -205,6 +205,29 @@ npm run set-password -- loren@example.com '<a long password>'
 
 Then sign in at `<APP_URL>/admin/login`.
 
+#### When the portal will not come up
+
+The public pages are static and need none of the above, so they keep working
+whatever is wrong here. Ask the portal itself first — it answers with the
+cause rather than a stack trace:
+
+```bash
+curl https://<your-site>.netlify.app/admin/login
+```
+
+| What it says | What to do |
+|---|---|
+| *The portal is not configured*, listing variables | Set the ones it names. **Check each variable's scope includes Functions** — Netlify lets a variable be scoped to Builds only, and one scoped that way is invisible to the portal, which looks exactly like not setting it. |
+| *Cannot reach its database* | `DATABASE_URL`. Use the transaction pooler on port 6543, keep the `postgres.<project-ref>` username — the pooler reads the project from it, and a plain `postgres` gives "no tenant identifier" — and check the database password. |
+| *404* | The function did not deploy. Check the build log for `netlify/functions/portal`. |
+| *A login page, but the password is refused* | No account yet, or a different one. Run step 6. |
+| *401 on every path, the public pages included* | Not the portal: Netlify's own site protection, under *Project configuration → Access & security → Visitor access*. |
+
+A free Supabase project pauses after about a week without activity. Only the
+portal touches it, so a site that is edited rarely can find it paused —
+restore it from the Supabase dashboard. The public pages are unaffected,
+because they are built from `data/content.json` in the repository.
+
 ### Moving an existing SQLite portal to Supabase
 
 `data/content.json` is the format both backends read and write, so the move is

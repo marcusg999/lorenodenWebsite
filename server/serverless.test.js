@@ -1,86 +1,138 @@
 'use strict';
-/* The Netlify Function wrapper, driven with the event shape Netlify sends.
-   It proves the portal answers without a listening server, and that the
-   function-URL prefix is stripped before Express sees the path. */
-const { test, before, after } = require('node:test');
+/* The Netlify Function wrapper.
+ *
+ * Two things matter here and neither shows up in the Express tests:
+ *
+ *   1. A function has no writable disk, so the app's laptop defaults — SQLite
+ *      in a file, images in a folder — cannot work. The wrapper must say so
+ *      in words the person deploying can act on, rather than die on whichever
+ *      write happened first.
+ *   2. Configured properly, it must serve the portal and keep a session
+ *      across separate invocations, since consecutive requests may land on
+ *      different instances.
+ *
+ * The wrapper reads its configuration once at load, so each scenario runs in
+ * its own process through server/serverless.probe.js.
+ */
+const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const os = require('os');
-const path = require('path');
-const fs = require('fs');
+const { execFileSync } = require('node:child_process');
+const path = require('node:path');
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'lo-fn-'));
-process.env.DB_PATH = path.join(tmp, 'fn.db');
-process.env.SESSION_SECRET = 'test-secret-not-used-in-production';
-// Test files run as parallel processes; on Postgres they would otherwise
-// share one set of tables. Each gets its own schema instead.
-process.env.PGSCHEMA = process.env.PGSCHEMA || 'test_fn';
+const PROBE = path.join(__dirname, 'serverless.probe.js');
 
-const fn = require('../netlify/functions/portal');
+/** Run the function in a fresh process with exactly this environment. */
+function invoke(env, requests) {
+  const out = execFileSync(process.execPath, [PROBE, JSON.stringify(requests)], {
+    cwd: path.join(__dirname, '..'),
+    env: { PATH: process.env.PATH, HOME: process.env.HOME, ...env },
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'ignore'],
+  });
+  return JSON.parse(out);
+}
 
-/** Netlify hands a function an API-Gateway-shaped event. */
-const invoke = (p, extra = {}) => fn.handler({
-  path: p,
-  httpMethod: 'GET',
-  headers: { host: 'example.netlify.app', 'x-forwarded-for': '203.0.113.9' },
-  queryStringParameters: null,
-  body: null,
-  isBase64Encoded: false,
-  ...extra,
-}, { callbackWaitsForEmptyEventLoop: true });
+/* A full, working configuration. Postgres is the only part that has to be
+   real; the Supabase Storage values are only checked for presence here, and
+   storage itself has its own tests. */
+const CONFIGURED = process.env.DATABASE_URL ? {
+  DB_DRIVER: 'postgres',
+  DATABASE_URL: process.env.DATABASE_URL,
+  PGSCHEMA: 'test_fn',
+  STORAGE: 'supabase',
+  SUPABASE_URL: 'https://abcdefg.supabase.co',
+  SUPABASE_SERVICE_KEY: 'sb_secret_not_a_real_key',
+  SESSION_SECRET: '0'.repeat(64),
+} : null;
 
-before(async () => {
-  await require('../server/db').init();
-  await require('../server/db').replaceRows('nav', [{ label: 'Music', href: '/#room' }]);
+/* Needs a Postgres to talk to. `npm test` has none by design — it must run on
+   a clone with nothing installed — so these run under `npm run test:pg`. */
+const needsDb = CONFIGURED ? {} : { skip: 'set DATABASE_URL (npm run test:pg)' };
+
+/* ---------------- the misconfigured case ---------------- */
+test('an unconfigured deploy says which variables are missing', () => {
+  const [res] = invoke({}, [{ path: '/admin/login' }]);
+
+  assert.equal(res.statusCode, 503, 'a clear refusal, not a crash');
+  for (const name of ['DB_DRIVER', 'DATABASE_URL', 'STORAGE', 'SUPABASE_URL',
+                      'SUPABASE_SERVICE_KEY', 'SESSION_SECRET']) {
+    assert.match(res.body, new RegExp(name), `${name} is named`);
+  }
+  assert.match(res.body, /scope includes Functions/,
+    'the Builds-only scope trap is the one that looks like nothing being set');
+  assert.ok(!/ENOENT|mkdir|\/var\/task/.test(res.body),
+    'no filesystem error should reach the person deploying');
 });
-after(async () => {
-  await require('../server/db').reset();
-  fs.rmSync(tmp, { recursive: true, force: true });
+
+test('leaving DB_DRIVER on its SQLite default is refused by name', () => {
+  const [res] = invoke({
+    DATABASE_URL: 'postgresql://postgres.ref:pw@host:6543/postgres',
+    STORAGE: 'supabase', SUPABASE_URL: 'https://a.supabase.co',
+    SUPABASE_SERVICE_KEY: 'k', SESSION_SECRET: '0'.repeat(64),
+  }, [{ path: '/admin/login' }]);
+
+  assert.equal(res.statusCode, 503);
+  assert.match(res.body, /DB_DRIVER/);
+  assert.match(res.body, /no disk/, 'it should say why, not just that it is wrong');
+  assert.ok(!/DATABASE_URL\s+—/.test(res.body), 'variables that are set are not listed');
 });
 
-test('the login page is served through the function', async () => {
-  const res = await invoke('/admin/login');
+test('a database that cannot be reached is reported as that, not as a crash', () => {
+  const [res] = invoke({
+    DB_DRIVER: 'postgres',
+    DATABASE_URL: 'postgresql://postgres.ref:pw@127.0.0.1:65400/postgres',
+    STORAGE: 'supabase', SUPABASE_URL: 'https://a.supabase.co',
+    SUPABASE_SERVICE_KEY: 'k', SESSION_SECRET: '0'.repeat(64),
+  }, [{ path: '/admin/login' }]);
+
+  assert.equal(res.statusCode, 503);
+  assert.match(res.body, /cannot reach its database/);
+  assert.match(res.body, /ECONNREFUSED/, 'the underlying error is quoted, so it can be acted on');
+  assert.match(res.body, /6543/, 'and the pooler port is the usual cause');
+});
+
+/* ---------------- the working case ---------------- */
+test('the login page is served through the function', needsDb, () => {
+  const [res] = invoke(CONFIGURED, [{ path: '/admin/login' }]);
   assert.equal(res.statusCode, 200);
   assert.match(res.body, /name="_csrf"/);
   assert.match(res.body, /type="email"/);
 });
 
-test('the function-URL prefix is stripped, so a direct call works too', async () => {
-  const res = await invoke('/.netlify/functions/portal/admin/login');
+test('the function-URL prefix is stripped, so a direct call works too', needsDb, () => {
+  const [res] = invoke(CONFIGURED, [{ path: '/.netlify/functions/portal/admin/login' }]);
   assert.equal(res.statusCode, 200, 'the prefix must not reach the router as part of the route');
   assert.match(res.body, /name="_csrf"/);
 });
 
-test('the portal still refuses anonymous visitors', async () => {
-  const res = await invoke('/admin');
+test('the portal still refuses anonymous visitors', needsDb, () => {
+  const [res] = invoke(CONFIGURED, [{ path: '/admin' }]);
   assert.equal(res.statusCode, 302);
-  assert.equal(res.headers.location, '/admin/login');
+  assert.equal(res.location, '/admin/login');
 });
 
-test('the API refuses an anonymous write', async () => {
-  const res = await invoke('/api/content', {
-    httpMethod: 'PUT',
-    headers: { host: 'example.netlify.app', 'content-type': 'application/json' },
+test('the API refuses an anonymous write', needsDb, () => {
+  const [res] = invoke(CONFIGURED, [{
+    path: '/api/content', method: 'PUT',
+    headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ 'hero.eyebrow': 'nope' }),
-  });
+  }]);
   assert.equal(res.statusCode, 401);
 });
 
-test('the session cookie survives a request, which is what a lambda needs', async () => {
-  const first = await invoke('/admin/login');
-  const setCookie = (first.multiValueHeaders && first.multiValueHeaders['set-cookie']) ||
-                    [first.headers['set-cookie']].filter(Boolean).flat();
-  assert.ok(setCookie.length, 'a session is started');
-  const cookie = String(setCookie[0]).split(';')[0];
-  const csrf = first.body.match(/name="_csrf" value="([^"]+)"/)[1];
-
-  // A second, separate invocation — a different lambda, as far as the app knows.
-  const second = await invoke('/admin/login', { headers: { host: 'x', cookie } });
-  assert.equal(second.body.match(/name="_csrf" value="([^"]+)"/)[1], csrf,
-    'the CSRF token comes back from the stored session, not from memory');
+test('a session survives into a separate invocation', needsDb, () => {
+  const [first, second] = invoke(CONFIGURED, [
+    { path: '/admin/login' },
+    { path: '/admin/login', useCookie: true },
+  ]);
+  assert.ok(first.setCookie.length, 'a session is started');
+  const a = first.body.match(/name="_csrf" value="([^"]+)"/)[1];
+  const b = second.body.match(/name="_csrf" value="([^"]+)"/)[1];
+  assert.equal(b, a, 'the CSRF token comes back from the stored session, not from memory');
 });
 
-test('the portal’s own stylesheet is served by the function', async () => {
-  const res = await invoke('/css/admin.css');
+test('the portal’s own stylesheet is served by the function', needsDb, () => {
+  const [res] = invoke(CONFIGURED, [{ path: '/css/admin.css' }]);
   assert.equal(res.statusCode, 200);
-  assert.match(res.headers['content-type'], /text\/css/);
+  assert.match(res.contentType, /text\/css/);
 });
